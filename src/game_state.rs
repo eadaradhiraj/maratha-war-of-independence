@@ -1182,6 +1182,55 @@ impl GameState {
             });
         }
 
+        // 2e. Demographic & Town Wealth Physics (ETW Population Growth)
+        for prov in self.provinces.iter_mut() {
+            let pop_growth_rate = match prov.tax_level {
+                TaxLevel::Exempt => 0.015,
+                TaxLevel::Low => 0.012,
+                TaxLevel::Normal => 0.008,
+                TaxLevel::High => 0.002,
+                TaxLevel::Extortionate => -0.005,
+            };
+            prov.population = (prov.population as f32 * (1.0 + pop_growth_rate)).round() as u32;
+
+            let wealth_delta = match prov.tax_level {
+                TaxLevel::Exempt => 20,
+                TaxLevel::Low => 15,
+                TaxLevel::Normal => 5,
+                TaxLevel::High => -10,
+                TaxLevel::Extortionate => -25,
+            };
+            prov.base_wealth = (prov.base_wealth as i32 + wealth_delta).clamp(100, 5000) as u32;
+
+            let has_religious_building = prov.buildings.contains(&BuildingType::TempleMosque);
+            if has_religious_building {
+                match prov.owner {
+                    FactionId::Maratha => {
+                        prov.hindu_pct = (prov.hindu_pct + 0.015).min(0.98);
+                        prov.muslim_pct = 1.0 - prov.hindu_pct;
+                    }
+                    FactionId::Mughal => {
+                        prov.muslim_pct = (prov.muslim_pct + 0.015).min(0.98);
+                        prov.hindu_pct = 1.0 - prov.muslim_pct;
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // 2f. Winter & Hostile Territory Attrition (ETW Supply Logistics)
+        if self.season == Season::Winter {
+            for army in self.armies.iter_mut() {
+                let prov_owner = self.provinces.get(army.province_id).map(|p| p.owner);
+                if prov_owner.is_some() && prov_owner != Some(army.owner) {
+                    for u in army.units.iter_mut() {
+                        let attrition_loss = (u.soldiers as f32 * 0.06).ceil() as u32;
+                        u.soldiers = u.soldiers.saturating_sub(attrition_loss).max(1);
+                    }
+                }
+            }
+        }
+
         // 3. Reset army movement
         for army in self.armies.iter_mut() {
             army.has_moved = false;
