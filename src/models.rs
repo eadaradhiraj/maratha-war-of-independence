@@ -9,6 +9,9 @@ pub enum FactionId {
     Portugal,
     Independent,
     Rebels,
+    Sikh,
+    Hyderabad,
+    Bengal,
 }
 
 impl FactionId {
@@ -20,6 +23,9 @@ impl FactionId {
             FactionId::Portugal => "Kingdom of Portugal",
             FactionId::Independent => "Independent Nawabs",
             FactionId::Rebels => "Deccan Insurgents & Rebels",
+            FactionId::Sikh => "Sikh Empire (Khalsa Fauj)",
+            FactionId::Hyderabad => "Nizamate of Hyderabad",
+            FactionId::Bengal => "Nawab of Bengal",
         }
     }
 
@@ -37,6 +43,12 @@ impl FactionId {
             FactionId::Independent => (Color::from_rgba(110, 110, 120, 255), Color::from_rgba(200, 200, 210, 255)),
             // Rebels Black & Crimson
             FactionId::Rebels => (Color::from_rgba(45, 15, 15, 255), Color::from_rgba(200, 50, 50, 255)),
+            // Sikh Royal Blue & Saffron
+            FactionId::Sikh => (Color::from_rgba(20, 60, 160, 255), Color::from_rgba(255, 185, 30, 255)),
+            // Hyderabad Cyan & Gold
+            FactionId::Hyderabad => (Color::from_rgba(20, 150, 160, 255), Color::from_rgba(255, 215, 70, 255)),
+            // Bengal Emerald & Silver
+            FactionId::Bengal => (Color::from_rgba(30, 120, 70, 255), Color::from_rgba(220, 220, 230, 255)),
         }
     }
 
@@ -54,6 +66,10 @@ pub enum DiploAction {
     Ceasefire,
     DemandTribute,
     DeclareWar,
+    DemandTerritory(usize),
+    OfferTerritory(usize),
+    SubjugateVassal,
+    GrantMilitaryAccess,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -62,6 +78,7 @@ pub enum CampaignStance {
     Normal,
     Fortified,
     Raiding,
+    Ambush,
 }
 
 impl CampaignStance {
@@ -70,6 +87,54 @@ impl CampaignStance {
             CampaignStance::Normal => "March / Standard",
             CampaignStance::Fortified => "Fortified Camp (+25% Def)",
             CampaignStance::Raiding => "Ganimi Kava (Raiding)",
+            CampaignStance::Ambush => "Concealed Ambush (75% Surprise)",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CommodityType {
+    Spices,
+    Cotton,
+    Silk,
+    Saltpetre,
+}
+
+impl CommodityType {
+    pub fn name(&self) -> &'static str {
+        match self {
+            CommodityType::Spices => "Malabar Spices & Pepper",
+            CommodityType::Cotton => "Gujarat Fine Cotton",
+            CommodityType::Silk => "Bengal Raw Silk",
+            CommodityType::Saltpetre => "Malwa Gunpowder Saltpetre",
+        }
+    }
+
+    pub fn base_price(&self) -> i32 {
+        match self {
+            CommodityType::Spices => 50,
+            CommodityType::Cotton => 35,
+            CommodityType::Silk => 60,
+            CommodityType::Saltpetre => 45,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum GeneralAncillary {
+    FrenchArtilleryMaster,
+    BhaktiChaplain,
+    WarElephantMaster,
+    SwissDrillmaster,
+}
+
+impl GeneralAncillary {
+    pub fn name(&self) -> &'static str {
+        match self {
+            GeneralAncillary::FrenchArtilleryMaster => "French Artillery Master (+2 Firepower)",
+            GeneralAncillary::BhaktiChaplain => "Bhakti Chaplain (+2 Morale)",
+            GeneralAncillary::WarElephantMaster => "War Elephant Master (+2 Melee)",
+            GeneralAncillary::SwissDrillmaster => "European Drillmaster (+2 Defense)",
         }
     }
 }
@@ -111,10 +176,11 @@ pub enum Season {
     Winter,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum TaxLevel {
     Exempt,
     Low,
+    #[default]
     Normal,
     High,
     Extortionate,
@@ -384,6 +450,8 @@ pub enum BuildingType {
     TradingPort,
     TempleMosque,
     CollegeOfLogic,
+    TextileLoom,
+    RoadNetwork,
 }
 
 impl BuildingType {
@@ -395,6 +463,8 @@ impl BuildingType {
             BuildingType::TradingPort => "Deepwater Trading Port",
             BuildingType::TempleMosque => "Grand Sacred Temple / Mosque",
             BuildingType::CollegeOfLogic => "Madrasa / Gurukul Academy",
+            BuildingType::TextileLoom => "Textile Mill & Loom",
+            BuildingType::RoadNetwork => "Grand Royal Highway",
         }
     }
 
@@ -406,17 +476,21 @@ impl BuildingType {
             BuildingType::TradingPort => 1000,
             BuildingType::TempleMosque => 600,
             BuildingType::CollegeOfLogic => 950,
+            BuildingType::TextileLoom => 650,
+            BuildingType::RoadNetwork => 500,
         }
     }
 
     pub fn effect_description(&self) -> &'static str {
         match self {
-            BuildingType::Fortress => "+3 Public Order, +20% Defense garrison",
+            BuildingType::Fortress => "+3 Public Order, +25% Defense garrison",
             BuildingType::Barracks => "Enables veteran line infantry & cavalry recruitment",
             BuildingType::Marketplace => "+220 Tax Revenue per turn, +10% regional growth",
             BuildingType::TradingPort => "+350 Sea Trade Revenue per turn",
             BuildingType::TempleMosque => "+4 Public Order, converts province culture",
             BuildingType::CollegeOfLogic => "+15% Technology Research Speed",
+            BuildingType::TextileLoom => "+180g Commodity Export Revenue",
+            BuildingType::RoadNetwork => "+35% Army Movement, +10% Trade Efficiency",
         }
     }
 }
@@ -479,6 +553,8 @@ pub struct Army {
     pub has_moved: bool,
     #[serde(default)]
     pub stance: CampaignStance,
+    #[serde(default)]
+    pub retinue: Vec<GeneralAncillary>,
 }
 
 impl Army {
@@ -488,8 +564,13 @@ impl Army {
 
     pub fn total_combat_power(&self) -> f32 {
         let raw: f32 = self.units.iter().map(|u| u.combat_power()).sum();
-        let stance_mult = if self.stance == CampaignStance::Fortified { 1.25 } else { 1.0 };
-        raw * (1.0 + self.general_stars as f32 * 0.08) * stance_mult
+        let stance_mult = match self.stance {
+            CampaignStance::Fortified => 1.25,
+            CampaignStance::Ambush => 1.35,
+            _ => 1.0,
+        };
+        let retinue_bonus = self.retinue.len() as f32 * 0.05;
+        raw * (1.0 + self.general_stars as f32 * 0.08 + retinue_bonus) * stance_mult
     }
 }
 
@@ -528,6 +609,10 @@ pub struct Province {
     pub resistance_to_occupation: i32,
     pub revealed_turns: u32,
     pub sabotaged_turns: u32,
+    pub commodity: Option<CommodityType>,
+    pub upper_tax: TaxLevel,
+    pub lower_tax: TaxLevel,
+    pub road_level: u8,
 }
 
 #[derive(Debug, Clone)]

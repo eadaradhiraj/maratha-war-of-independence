@@ -50,6 +50,9 @@ pub struct FactionData {
     pub relations: HashMap<FactionId, i32>,
     pub is_bankrupt: bool,
     pub prestige: (u32, u32, u32), // (military, economic, enlightenment)
+    pub vassals: Vec<FactionId>,
+    pub overlord: Option<FactionId>,
+    pub military_access_with: Vec<FactionId>,
 }
 
 impl GameState {
@@ -117,6 +120,9 @@ impl GameState {
                 relations: maratha_rel,
                 is_bankrupt: false,
                 prestige: (210, 180, 80),
+                vassals: vec![],
+                overlord: None,
+                military_access_with: vec![],
             },
         );
 
@@ -167,6 +173,9 @@ impl GameState {
                 relations: mughal_rel,
                 is_bankrupt: false,
                 prestige: (450, 600, 150),
+                vassals: vec![],
+                overlord: None,
+                military_access_with: vec![],
             },
         );
 
@@ -193,6 +202,9 @@ impl GameState {
                 relations: mysore_rel,
                 is_bankrupt: false,
                 prestige: (110, 120, 60),
+                vassals: vec![],
+                overlord: None,
+                military_access_with: vec![],
             },
         );
 
@@ -219,6 +231,9 @@ impl GameState {
                 relations: port_rel,
                 is_bankrupt: false,
                 prestige: (90, 160, 100),
+                vassals: vec![],
+                overlord: None,
+                military_access_with: vec![],
             },
         );
 
@@ -245,6 +260,9 @@ impl GameState {
                 relations: ind_rel,
                 is_bankrupt: false,
                 prestige: (80, 80, 20),
+                vassals: vec![],
+                overlord: None,
+                military_access_with: vec![],
             },
         );
 
@@ -265,6 +283,78 @@ impl GameState {
                 relations: HashMap::new(),
                 is_bankrupt: false,
                 prestige: (30, 20, 0),
+                vassals: vec![],
+                overlord: None,
+                military_access_with: vec![],
+            },
+        );
+
+        // 7. Sikh Empire (Emergent)
+        factions.insert(
+            FactionId::Sikh,
+            FactionData {
+                id: FactionId::Sikh,
+                name: "Sikh Empire (Khalsa Fauj)".into(),
+                leader_name: "Banda Singh Bahadur".into(),
+                treasury: 1800,
+                ministers: vec![],
+                researched_techs: vec!["flintlock_musket".into()],
+                current_research: None,
+                wars: vec![FactionId::Mughal],
+                trade_partners: vec![],
+                alliances: vec![],
+                relations: HashMap::new(),
+                is_bankrupt: false,
+                prestige: (70, 50, 30),
+                vassals: vec![],
+                overlord: None,
+                military_access_with: vec![],
+            },
+        );
+
+        // 8. Nizamate of Hyderabad (Emergent)
+        factions.insert(
+            FactionId::Hyderabad,
+            FactionData {
+                id: FactionId::Hyderabad,
+                name: "Nizamate of Hyderabad".into(),
+                leader_name: "Nizam-ul-Mulk Asaf Jah I".into(),
+                treasury: 3200,
+                ministers: vec![],
+                researched_techs: vec!["flintlock_musket".into()],
+                current_research: None,
+                wars: vec![],
+                trade_partners: vec![],
+                alliances: vec![],
+                relations: HashMap::new(),
+                is_bankrupt: false,
+                prestige: (90, 110, 40),
+                vassals: vec![],
+                overlord: None,
+                military_access_with: vec![],
+            },
+        );
+
+        // 9. Nawab of Bengal (Emergent)
+        factions.insert(
+            FactionId::Bengal,
+            FactionData {
+                id: FactionId::Bengal,
+                name: "Nawab of Bengal".into(),
+                leader_name: "Murshid Quli Khan".into(),
+                treasury: 4800,
+                ministers: vec![],
+                researched_techs: vec!["flintlock_musket".into()],
+                current_research: None,
+                wars: vec![],
+                trade_partners: vec![],
+                alliances: vec![],
+                relations: HashMap::new(),
+                is_bankrupt: false,
+                prestige: (80, 160, 50),
+                vassals: vec![],
+                overlord: None,
+                military_access_with: vec![],
             },
         );
 
@@ -288,6 +378,7 @@ impl GameState {
             general_stars: 4,
             has_moved: false,
             stance: CampaignStance::Normal,
+            retinue: vec![GeneralAncillary::WarElephantMaster],
         });
 
         // Maratha Carnatica Army in Arcot
@@ -304,6 +395,7 @@ impl GameState {
             general_stars: 3,
             has_moved: false,
             stance: CampaignStance::Normal,
+            retinue: vec![GeneralAncillary::BhaktiChaplain],
         });
 
         // Mughal Southern Army in Ahmadnagar
@@ -321,6 +413,7 @@ impl GameState {
             general_stars: 3,
             has_moved: false,
             stance: CampaignStance::Normal,
+            retinue: vec![GeneralAncillary::FrenchArtilleryMaster],
         });
 
         // Mughal Imperial Army in Hindustan (Delhi)
@@ -338,6 +431,7 @@ impl GameState {
             general_stars: 4,
             has_moved: false,
             stance: CampaignStance::Normal,
+            retinue: vec![GeneralAncillary::SwissDrillmaster],
         });
 
         let available_techs = vec![
@@ -440,6 +534,9 @@ impl GameState {
                 fac.relations = fac_save.relations;
                 fac.is_bankrupt = fac_save.is_bankrupt;
                 fac.prestige = fac_save.prestige;
+                fac.vassals = fac_save.vassals;
+                fac.overlord = fac_save.overlord;
+                fac.military_access_with = fac_save.military_access_with;
             }
         }
 
@@ -458,6 +555,10 @@ impl GameState {
                 p.resistance_to_occupation = p_save.resistance_to_occupation;
                 p.revealed_turns = p_save.revealed_turns;
                 p.sabotaged_turns = p_save.sabotaged_turns;
+                p.commodity = p_save.commodity;
+                p.upper_tax = p_save.upper_tax;
+                p.lower_tax = p_save.lower_tax;
+                p.road_level = p_save.road_level;
             }
         }
 
@@ -468,6 +569,9 @@ impl GameState {
             FactionId::Portugal => 7,
             FactionId::Independent => 0,
             FactionId::Rebels => 0,
+            FactionId::Sikh => 15,
+            FactionId::Hyderabad => 10,
+            FactionId::Bengal => 2,
         };
         self.selected_province = Some(capital_prov_idx);
         self.selected_army = self.armies.iter().position(|a| a.owner == self.player_faction);
@@ -503,6 +607,9 @@ impl GameState {
             FactionId::Portugal => 7, // Goa
             FactionId::Independent => 0, // Afghanistan / Kabul
             FactionId::Rebels => 0,
+            FactionId::Sikh => 15, // Punjab / Lahore
+            FactionId::Hyderabad => 10, // Deccan / Hyderabad
+            FactionId::Bengal => 2, // Bengal / Calcutta
         };
         self.selected_province = Some(capital_prov_idx);
 
@@ -526,9 +633,11 @@ impl GameState {
         let mut tax_income = 0;
         let mut trade_income = 0;
 
+        let partner_count = self.factions.get(&faction_id).map(|f| f.trade_partners.len()).unwrap_or(0);
+
         for p in self.provinces.iter().filter(|p| p.owner == faction_id) {
             if !p.is_under_siege {
-                let mult = p.tax_level.rate_multiplier();
+                let mult = (p.upper_tax.rate_multiplier() + p.lower_tax.rate_multiplier()) * 0.5;
                 let base_rev = (p.base_wealth as f32 * 0.4 * mult) as i32;
                 tax_income += base_rev;
 
@@ -537,7 +646,16 @@ impl GameState {
                         match b {
                             BuildingType::Marketplace => tax_income += 220,
                             BuildingType::TradingPort if !p.is_port_blockaded => trade_income += 350,
+                            BuildingType::TextileLoom if partner_count > 0 => trade_income += 180,
+                            BuildingType::RoadNetwork if partner_count > 0 => trade_income += 60,
                             _ => {}
+                        }
+                    }
+
+                    // Commodity Export Physics
+                    if partner_count > 0 {
+                        if let Some(comm) = p.commodity {
+                            trade_income += (comm.base_price() * partner_count as i32) / 2;
                         }
                     }
                 }
@@ -590,8 +708,12 @@ impl GameState {
         let army_owner = self.armies[army_idx].owner;
         let target_owner = self.provinces[target_prov_idx].owner;
 
-        // If target is owned by self or ally, move peacefully
-        if target_owner == army_owner {
+        let has_military_access = self.factions.get(&army_owner)
+            .map(|f| f.military_access_with.contains(&target_owner) && !f.wars.contains(&target_owner))
+            .unwrap_or(false);
+
+        // If target is owned by self or has bilateral military access, move peacefully
+        if target_owner == army_owner || has_military_access {
             self.armies[army_idx].province_id = target_prov_idx;
             self.armies[army_idx].has_moved = true;
             self.selected_province = Some(target_prov_idx);
@@ -607,6 +729,11 @@ impl GameState {
             .armies
             .iter()
             .position(|a| a.province_id == target_prov_idx && a.owner != army_owner);
+
+        // Emergency Citizens-in-Arms Militia: If target settlement has no garrison, populace mounts emergency defense!
+        if def_garrison.is_empty() && enemy_army_idx.is_none() {
+            def_garrison.push(UnitInstance::new(8880 + target_prov_idx as u64 * 10 + 1, UnitType::ZamindariLevies));
+        }
 
         let def_stars = if let Some(e_idx) = enemy_army_idx {
             for u in &self.armies[e_idx].units {
@@ -628,7 +755,31 @@ impl GameState {
         );
 
         if report.attacker_won {
+            // General Retinue & Ancillary appointment
+            if self.armies[army_idx].retinue.len() < 3 {
+                let roll = (self.turn * 37 + target_prov_idx as u32 * 13) % 4;
+                let anc = match roll {
+                    0 => GeneralAncillary::FrenchArtilleryMaster,
+                    1 => GeneralAncillary::BhaktiChaplain,
+                    2 => GeneralAncillary::WarElephantMaster,
+                    _ => GeneralAncillary::SwissDrillmaster,
+                };
+                if !self.armies[army_idx].retinue.contains(&anc) {
+                    self.armies[army_idx].retinue.push(anc);
+                    if army_owner == self.player_faction {
+                        self.notifications.push(Notification {
+                            turn: self.turn,
+                            year: self.year,
+                            title: "General Retinue Appointed!".into(),
+                            message: format!("General {} has appointed a {} to their retinue!", self.armies[army_idx].general_name, anc.name()),
+                            is_urgent: false,
+                        });
+                    }
+                }
+            }
+
             // Province conquered!
+            self.occupy_province(target_prov_idx, OccupationChoice::Peaceful);
             self.provinces[target_prov_idx].owner = army_owner;
             self.provinces[target_prov_idx].garrison = vec![
                 UnitInstance::new(9990 + self.turn as u64, UnitType::ZamindariLevies),
@@ -828,6 +979,7 @@ impl GameState {
             general_stars: 3,
             has_moved: false,
             stance: CampaignStance::Normal,
+            retinue: vec![],
         };
 
         self.armies.push(new_army);
@@ -958,7 +1110,7 @@ impl GameState {
                     *rel -= 30;
                 }
                 if let Some(f) = self.factions.get_mut(&target) {
-                    f.treasury += tribute;
+                    f.treasury = f.treasury.saturating_sub(tribute);
                     let rel = f.relations.entry(self.player_faction).or_insert(0);
                     *rel -= 30;
                 }
@@ -972,6 +1124,7 @@ impl GameState {
                     f.wars.push(target);
                     f.trade_partners.retain(|t| *t != target);
                     f.alliances.retain(|a| *a != target);
+                    f.military_access_with.retain(|m| *m != target);
                     let rel = f.relations.entry(target).or_insert(0);
                     *rel = -80;
                 }
@@ -979,10 +1132,125 @@ impl GameState {
                     f.wars.push(self.player_faction);
                     f.trade_partners.retain(|t| *t != self.player_faction);
                     f.alliances.retain(|a| *a != self.player_faction);
+                    f.military_access_with.retain(|m| *m != self.player_faction);
                     let rel = f.relations.entry(self.player_faction).or_insert(0);
                     *rel = -80;
                 }
                 Ok(format!("Declared War on {}! Regiments mobilized across frontiers.", target_fac.name))
+            }
+            DiploAction::GrantMilitaryAccess => {
+                if p_fac.wars.contains(&target) {
+                    return Err("Cannot negotiate military transit while at war!".into());
+                }
+                if p_fac.military_access_with.contains(&target) {
+                    return Err("Military access is already granted between our nations.".into());
+                }
+                if current_rel < -10 {
+                    return Err(format!("The court of {} refuses to permit foreign troops upon their soil (relations: {}).", target_fac.name, current_rel));
+                }
+                if let Some(f) = self.factions.get_mut(&self.player_faction) {
+                    f.military_access_with.push(target);
+                    let rel = f.relations.entry(target).or_insert(0);
+                    *rel = (*rel + 15).min(100);
+                }
+                if let Some(f) = self.factions.get_mut(&target) {
+                    f.military_access_with.push(self.player_faction);
+                    let rel = f.relations.entry(self.player_faction).or_insert(0);
+                    *rel = (*rel + 15).min(100);
+                }
+                Ok(format!("Bilateral Military Access ratified with {}! Field armies may march through borders peacefully.", target_fac.name))
+            }
+            DiploAction::SubjugateVassal => {
+                if target == FactionId::Mughal && target_fac.treasury > 3000 {
+                    return Err("The Mughal Emperor considers your court upstarts and refuses vassalage!".into());
+                }
+                if target_fac.overlord.is_some() {
+                    return Err(format!("{} is already the vassal of another sovereign.", target_fac.name));
+                }
+                let p_prestige = p_fac.prestige.0 + p_fac.prestige.1 + p_fac.prestige.2;
+                let t_prestige = target_fac.prestige.0 + target_fac.prestige.1 + target_fac.prestige.2;
+                if p_prestige <= t_prestige && current_rel < 30 {
+                    return Err(format!("{} possesses prestige ({} pts) comparable to your realm ({} pts) and rejects subservience.", target_fac.name, t_prestige, p_prestige));
+                }
+                if let Some(f) = self.factions.get_mut(&target) {
+                    f.overlord = Some(self.player_faction);
+                    f.wars.retain(|w| *w != self.player_faction);
+                    if !f.trade_partners.contains(&self.player_faction) {
+                        f.trade_partners.push(self.player_faction);
+                    }
+                    if !f.military_access_with.contains(&self.player_faction) {
+                        f.military_access_with.push(self.player_faction);
+                    }
+                    let rel = f.relations.entry(self.player_faction).or_insert(0);
+                    *rel = (*rel + 25).min(100);
+                }
+                if let Some(f) = self.factions.get_mut(&self.player_faction) {
+                    if !f.vassals.contains(&target) {
+                        f.vassals.push(target);
+                    }
+                    f.wars.retain(|w| *w != target);
+                    if !f.trade_partners.contains(&target) {
+                        f.trade_partners.push(target);
+                    }
+                    if !f.military_access_with.contains(&target) {
+                        f.military_access_with.push(target);
+                    }
+                    let rel = f.relations.entry(target).or_insert(0);
+                    *rel = (*rel + 25).min(100);
+                }
+                Ok(format!("{} has sworn fealty as a Protectorate Vassal! They remit 50% surplus revenue each season.", target_fac.name))
+            }
+            DiploAction::DemandTerritory(prov_idx) => {
+                if prov_idx >= self.provinces.len() {
+                    return Err("Invalid province index.".into());
+                }
+                if self.provinces[prov_idx].owner != target {
+                    return Err(format!("{} does not own {}.", target_fac.name, self.provinces[prov_idx].name));
+                }
+                let cap_idx = match target {
+                    FactionId::Mughal => 9,
+                    FactionId::Mysore => 13,
+                    FactionId::Portugal => 7,
+                    FactionId::Sikh => 15,
+                    FactionId::Hyderabad => 10,
+                    FactionId::Bengal => 2,
+                    _ => 999,
+                };
+                if prov_idx == cap_idx {
+                    return Err(format!("{} will never cede their seat of power ({})!", target_fac.name, self.provinces[prov_idx].capital_name));
+                }
+                let is_vassal = p_fac.vassals.contains(&target);
+                if !is_vassal && current_rel < 35 {
+                    return Err(format!("The court of {} rejects your territorial demands (relations: {}).", target_fac.name, current_rel));
+                }
+                let prov_name = self.provinces[prov_idx].name.clone();
+                self.provinces[prov_idx].owner = self.player_faction;
+                self.provinces[prov_idx].public_order = 0;
+                if let Some(f) = self.factions.get_mut(&target) {
+                    let rel = f.relations.entry(self.player_faction).or_insert(0);
+                    *rel = (*rel - 25).clamp(-100, 100);
+                }
+                Ok(format!("{} ceded territorial governance of {} to your realm!", target_fac.name, prov_name))
+            }
+            DiploAction::OfferTerritory(prov_idx) => {
+                if prov_idx >= self.provinces.len() {
+                    return Err("Invalid province index.".into());
+                }
+                if self.provinces[prov_idx].owner != self.player_faction {
+                    return Err("You do not hold this province.".into());
+                }
+                let prov_name = self.provinces[prov_idx].name.clone();
+                self.provinces[prov_idx].owner = target;
+                self.provinces[prov_idx].public_order = 2;
+                if let Some(f) = self.factions.get_mut(&target) {
+                    let rel = f.relations.entry(self.player_faction).or_insert(0);
+                    *rel = (*rel + 45).min(100);
+                }
+                if let Some(f) = self.factions.get_mut(&self.player_faction) {
+                    let rel = f.relations.entry(target).or_insert(0);
+                    *rel = (*rel + 45).min(100);
+                }
+                Ok(format!("Transferred sovereignty of {} to {}. Bilateral diplomatic trust surged (+45)!", prov_name, target_fac.name))
             }
         }
     }
@@ -1320,6 +1588,10 @@ impl GameState {
             FactionId::Mughal,
             FactionId::Mysore,
             FactionId::Portugal,
+            FactionId::Independent,
+            FactionId::Sikh,
+            FactionId::Hyderabad,
+            FactionId::Bengal,
         ] {
             let (_, _, net_profit) = self.calculate_faction_economy(faction_id);
             if let Some(fac) = self.factions.get_mut(&faction_id) {
@@ -1333,6 +1605,10 @@ impl GameState {
             FactionId::Mughal,
             FactionId::Mysore,
             FactionId::Portugal,
+            FactionId::Independent,
+            FactionId::Sikh,
+            FactionId::Hyderabad,
+            FactionId::Bengal,
         ] {
             let in_debt = self.factions.get(&faction_id).map(|f| f.treasury < 0).unwrap_or(false);
             if let Some(fac) = self.factions.get_mut(&faction_id) {
@@ -1352,6 +1628,44 @@ impl GameState {
                         title: "National Bankruptcy Crisis!".into(),
                         message: "Treasury deficit has triggered regimental desertions (-15% troop strength) and administrative paralysis!".into(),
                         is_urgent: true,
+                    });
+                }
+            }
+        }
+
+        // 1c. Vassal Tribute Collection (50% surplus remitted to overlords)
+        for faction_id in [
+            FactionId::Maratha,
+            FactionId::Mughal,
+            FactionId::Mysore,
+            FactionId::Portugal,
+            FactionId::Sikh,
+            FactionId::Hyderabad,
+            FactionId::Bengal,
+        ] {
+            let vassals = self.factions.get(&faction_id).map(|f| f.vassals.clone()).unwrap_or_default();
+            let mut total_vassal_tribute = 0;
+            for v_id in vassals {
+                let (_, _, v_profit) = self.calculate_faction_economy(v_id);
+                if v_profit > 0 {
+                    let tribute = v_profit / 2;
+                    total_vassal_tribute += tribute;
+                    if let Some(v_fac) = self.factions.get_mut(&v_id) {
+                        v_fac.treasury = v_fac.treasury.saturating_sub(tribute);
+                    }
+                }
+            }
+            if total_vassal_tribute > 0 {
+                if let Some(fac) = self.factions.get_mut(&faction_id) {
+                    fac.treasury += total_vassal_tribute;
+                }
+                if faction_id == self.player_faction {
+                    self.notifications.push(Notification {
+                        turn: self.turn,
+                        year: self.year,
+                        title: "Protectorate Tribute Collected".into(),
+                        message: format!("Remitted {}g in seasonal imperial tribute from sworn vassal protectorates.", total_vassal_tribute),
+                        is_urgent: false,
                     });
                 }
             }
@@ -1447,22 +1761,53 @@ impl GameState {
             prov.public_order = (prov.public_order + net_order_delta).clamp(-10, 10);
         }
 
-        // 2d. Civil Rebellions & Insurrections (ETW Grand Campaign Provincial Uprisings)
+        // 2d. Civil Rebellions & Insurrections (ETW Emergent Factions & Uprisings)
         let mut rebellions = Vec::new();
         for (idx, prov) in self.provinces.iter_mut().enumerate() {
             if prov.public_order <= -8 {
                 let garrison_size: u32 = prov.garrison.iter().map(|u| u.soldiers).sum();
                 if garrison_size < 120 {
-                    // Rebels overthrow imperial/sovereign administration
                     let prev_owner = prov.owner;
                     let prov_name = prov.name.clone();
-                    prov.owner = FactionId::Rebels;
+
+                    // Historical Emergent Factions:
+                    // Punjab (15)    -> Sikh Empire
+                    // Hyderabad (10) -> Nizamate of Hyderabad
+                    // Bengal (2)     -> Nawab of Bengal
+                    let new_owner = match idx {
+                        15 => FactionId::Sikh,
+                        10 => FactionId::Hyderabad,
+                        2  => FactionId::Bengal,
+                        _  => FactionId::Rebels,
+                    };
+
+                    prov.owner = new_owner;
                     prov.public_order = 0;
                     prov.garrison.clear();
-                    prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 1, UnitType::ZamindariLevies));
-                    prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 2, UnitType::JezailSkirmishers));
-                    prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 3, UnitType::HinduMatchlocks));
-                    rebellions.push((idx, prov_name, prev_owner));
+
+                    match new_owner {
+                        FactionId::Sikh => {
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 1, UnitType::MansabdarGuards));
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 2, UnitType::ZamindariLevies));
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 3, UnitType::JezailSkirmishers));
+                        }
+                        FactionId::Hyderabad => {
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 1, UnitType::SilhadarLancers));
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 2, UnitType::SepoyLineInfantry));
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 3, UnitType::ZamindariLevies));
+                        }
+                        FactionId::Bengal => {
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 1, UnitType::SepoyLineInfantry));
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 2, UnitType::SepoyLineInfantry));
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 3, UnitType::BargirCavalry));
+                        }
+                        _ => {
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 1, UnitType::ZamindariLevies));
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 2, UnitType::JezailSkirmishers));
+                            prov.garrison.push(UnitInstance::new(9000 + idx as u64 * 10 + 3, UnitType::HinduMatchlocks));
+                        }
+                    }
+                    rebellions.push((idx, prov_name, prev_owner, new_owner));
                 } else {
                     // Garrison quells riot with minor casualties
                     for u in prov.garrison.iter_mut() {
@@ -1472,22 +1817,30 @@ impl GameState {
                 }
             }
         }
-        for (_, p_name, prev_owner) in rebellions {
+        for (_, p_name, prev_owner, new_owner) in rebellions {
+            let is_emergent = new_owner != FactionId::Rebels;
+            let title = if is_emergent {
+                format!("Sovereign Emergence: {}!", new_owner.name())
+            } else {
+                "Provincial Rebellion Erupted!".into()
+            };
+            let desc = if is_emergent {
+                format!("The people of {} have declared independence under the banners of the {}!", p_name, new_owner.name())
+            } else {
+                format!("Unbearable public dissent has ignited an armed insurrection in {}! Rebels have driven out {} garrison forces.", p_name, prev_owner.name())
+            };
             self.notifications.push(Notification {
                 turn: self.turn,
                 year: self.year,
-                title: "Provincial Rebellion Erupted!".into(),
-                message: format!(
-                    "Unbearable public dissent has ignited an armed insurrection in {}! Rebels have driven out {} garrison forces.",
-                    p_name, prev_owner.name()
-                ),
+                title,
+                message: desc,
                 is_urgent: true,
             });
         }
 
-        // 2e. Demographic & Town Wealth Physics (ETW Population Growth)
+        // 2e. Demographic & Town Wealth Physics (ETW Population Growth & Dual-Class Taxes)
         for prov in self.provinces.iter_mut() {
-            let pop_growth_rate = match prov.tax_level {
+            let pop_growth_rate = match prov.lower_tax {
                 TaxLevel::Exempt => 0.015,
                 TaxLevel::Low => 0.012,
                 TaxLevel::Normal => 0.008,
@@ -1496,12 +1849,12 @@ impl GameState {
             };
             prov.population = (prov.population as f32 * (1.0 + pop_growth_rate)).round() as u32;
 
-            let wealth_delta = match prov.tax_level {
-                TaxLevel::Exempt => 20,
-                TaxLevel::Low => 15,
+            let wealth_delta = match prov.upper_tax {
+                TaxLevel::Exempt => 25,
+                TaxLevel::Low => 18,
                 TaxLevel::Normal => 5,
-                TaxLevel::High => -10,
-                TaxLevel::Extortionate => -25,
+                TaxLevel::High => -12,
+                TaxLevel::Extortionate => -30,
             };
             prov.base_wealth = (prov.base_wealth as i32 + wealth_delta).clamp(100, 5000) as u32;
 
@@ -1575,6 +1928,51 @@ impl GameState {
             prov.resistance_to_occupation = prov.resistance_to_occupation.saturating_sub(2);
         }
 
+        // 2i. Historical Crises & Epochal Events (1700-1750)
+        if self.year == 1707 && self.season == Season::Summer {
+            if let Some(mughal) = self.factions.get_mut(&FactionId::Mughal) {
+                mughal.treasury = mughal.treasury.saturating_sub(2500);
+            }
+            for prov in self.provinces.iter_mut().filter(|p| p.owner == FactionId::Mughal) {
+                prov.public_order = (prov.public_order - 3).clamp(-10, 10);
+            }
+            self.notifications.push(Notification {
+                turn: self.turn,
+                year: self.year,
+                title: "Historical Crisis: Death of Badshah Aurangzeb (1707)".into(),
+                message: "The aged Mughal Emperor Aurangzeb has died at Ahmednagar! Succession civil war erupts among imperial princes. Mughal authority crumbles (-2500g treasury, -3 public order in all Subahs)!".into(),
+                is_urgent: true,
+            });
+        }
+
+        if self.year == 1713 && self.season == Season::Summer {
+            if let Some(maratha) = self.factions.get_mut(&FactionId::Maratha) {
+                maratha.treasury += 1000;
+            }
+            self.notifications.push(Notification {
+                turn: self.turn,
+                year: self.year,
+                title: "Historical Era: Rise of the Peshwa Council (1713)".into(),
+                message: "Under Chhatrapati Shahu, Balaji Vishwanath is appointed Peshwa! The Ashta Pradhan council is formalized into a confederate war machine (+1000g treasury)!".into(),
+                is_urgent: true,
+            });
+        }
+
+        if self.year == 1739 && self.season == Season::Summer {
+            if let Some(mughal) = self.factions.get_mut(&FactionId::Mughal) {
+                mughal.treasury = mughal.treasury.saturating_sub(4000);
+            }
+            self.provinces[9].base_wealth = self.provinces[9].base_wealth.saturating_sub(300).max(100);
+            self.provinces[9].public_order = -8;
+            self.notifications.push(Notification {
+                turn: self.turn,
+                year: self.year,
+                title: "Historical Cataclysm: Sack of Delhi by Nader Shah (1739)".into(),
+                message: "The Persian host under Nader Shah has sacked Delhi! The Peacock Throne and Koh-i-Noor are plundered. The Mughal treasury is decimated (-4000g treasury, -300g Delhi wealth)!".into(),
+                is_urgent: true,
+            });
+        }
+
         // 3. Reset army movement
         for army in self.armies.iter_mut() {
             army.has_moved = false;
@@ -1637,5 +2035,91 @@ impl GameState {
 
         // 7. AutoSave Campaign State to Local Storage!
         let _ = crate::storage::auto_save_campaign(self);
+    }
+
+    pub fn disband_army_unit(&mut self, army_idx: usize, unit_idx: usize) -> Result<String, String> {
+        if army_idx >= self.armies.len() {
+            return Err("Invalid army index.".into());
+        }
+        let army = &mut self.armies[army_idx];
+        if army.owner != self.player_faction {
+            return Err("Cannot order disbandment of foreign troops.".into());
+        }
+        if unit_idx >= army.units.len() {
+            return Err("Invalid unit index.".into());
+        }
+        if army.units.len() <= 1 {
+            return Err("Cannot disband the commander's sole bodyguard battalion! Detach or commission another instead.".into());
+        }
+        let u = army.units.remove(unit_idx);
+        let upkeep_saved = u.unit_type.stats().upkeep;
+        Ok(format!("Disbanded {} ({} soldiers). Upkeep reduced by {}g/turn.", u.unit_type.name(), u.soldiers, upkeep_saved))
+    }
+
+    pub fn disband_garrison_unit(&mut self, prov_idx: usize, unit_idx: usize) -> Result<String, String> {
+        if prov_idx >= self.provinces.len() {
+            return Err("Invalid province index.".into());
+        }
+        let prov = &mut self.provinces[prov_idx];
+        if prov.owner != self.player_faction {
+            return Err("Cannot disband foreign garrison forces.".into());
+        }
+        if unit_idx >= prov.garrison.len() {
+            return Err("Invalid unit index.".into());
+        }
+        let u = prov.garrison.remove(unit_idx);
+        let upkeep_saved = (u.unit_type.stats().upkeep as f32 * 0.75) as u32;
+        Ok(format!("Disbanded garrison {} ({} soldiers). Upkeep reduced by {}g/turn.", u.unit_type.name(), u.soldiers, upkeep_saved))
+    }
+
+    pub fn merge_army_units(&mut self, army_idx: usize) -> Result<String, String> {
+        if army_idx >= self.armies.len() {
+            return Err("Invalid army index.".into());
+        }
+        let army = &mut self.armies[army_idx];
+        if army.owner != self.player_faction {
+            return Err("Cannot command foreign forces.".into());
+        }
+        let mut merged_count = 0;
+        let mut absorbed_regiments = 0;
+        let n = army.units.len();
+        let mut to_remove = Vec::new();
+
+        for i in 0..n {
+            if to_remove.contains(&i) {
+                continue;
+            }
+            for j in (i + 1)..n {
+                if to_remove.contains(&j) {
+                    continue;
+                }
+                if army.units[i].unit_type == army.units[j].unit_type {
+                    let cap = army.units[i].max_soldiers;
+                    if army.units[i].soldiers < cap && army.units[j].soldiers > 0 {
+                        let space = cap - army.units[i].soldiers;
+                        let transfer = space.min(army.units[j].soldiers);
+                        army.units[i].soldiers += transfer;
+                        army.units[j].soldiers -= transfer;
+                        army.units[i].experience = army.units[i].experience.max(army.units[j].experience);
+                        merged_count += 1;
+                        if army.units[j].soldiers == 0 {
+                            to_remove.push(j);
+                            absorbed_regiments += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        to_remove.sort_by(|a, b| b.cmp(a));
+        for idx in to_remove {
+            army.units.remove(idx);
+        }
+
+        if merged_count > 0 {
+            Ok(format!("Consolidated ranks across {} depleted battalions ({} empty regiments dissolved into active line).", merged_count, absorbed_regiments))
+        } else {
+            Err("No under-strength regiments of identical type found to consolidate.".into())
+        }
     }
 }

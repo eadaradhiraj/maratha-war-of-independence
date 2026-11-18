@@ -1,5 +1,7 @@
 use macroquad::prelude::*;
-use crate::models::{BuildingType, FactionId, Province, TaxLevel, UnitInstance, UnitType};
+use crate::models::{
+    BuildingType, CommodityType, FactionId, Province, TaxLevel, UnitInstance, UnitType,
+};
 
 pub fn point_in_polygon(point: Vec2, poly: &[Vec2]) -> bool {
     let mut inside = false;
@@ -59,6 +61,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: None,
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 1: Ahmadnagar
@@ -101,6 +107,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Cotton),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 2: Bengal
@@ -148,6 +158,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Silk),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 3: Berar
@@ -189,6 +203,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Cotton),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 4: Bijapur (Starting Maratha Capital!)
@@ -236,6 +254,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Spices),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 5: Carnatica (Starting Maratha second province!)
@@ -284,6 +306,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Spices),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 6: Ceylon
@@ -322,6 +348,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Spices),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 7: Goa
@@ -362,6 +392,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Spices),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 8: Gujarat
@@ -408,6 +442,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Cotton),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 9: Hindustan (Imperial Delhi / Akbarabad)
@@ -457,6 +495,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Saltpetre),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 10: Hyderabad
@@ -504,6 +546,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Cotton),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 11: Kashmir
@@ -542,6 +588,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Silk),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 12: Malwa
@@ -585,6 +635,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Saltpetre),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 13: Mysore
@@ -627,6 +681,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Spices),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 14: Orissa & Circars
@@ -666,6 +724,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Silk),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 15: Punjab
@@ -709,6 +771,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Saltpetre),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 16: Rajpootana
@@ -750,6 +816,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Saltpetre),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     // 17: Sindh
@@ -789,6 +859,10 @@ pub fn create_default_provinces() -> Vec<Province> {
         resistance_to_occupation: 0,
         revealed_turns: 0,
         sabotaged_turns: 0,
+        commodity: Some(CommodityType::Cotton),
+        upper_tax: TaxLevel::Normal,
+        lower_tax: TaxLevel::Normal,
+        road_level: 1,
     });
 
     provinces

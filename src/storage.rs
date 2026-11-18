@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use crate::game_state::GameState;
 use crate::models::{
-    Army, BuildingType, FactionId, Minister, RecruitOrder, Season, TaxLevel, UnitInstance,
+    Army, BuildingType, CommodityType, FactionId, Minister, RecruitOrder, Season, TaxLevel, UnitInstance,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,6 +28,14 @@ pub struct ProvinceSaveData {
     pub revealed_turns: u32,
     #[serde(default)]
     pub sabotaged_turns: u32,
+    #[serde(default)]
+    pub commodity: Option<CommodityType>,
+    #[serde(default)]
+    pub upper_tax: TaxLevel,
+    #[serde(default)]
+    pub lower_tax: TaxLevel,
+    #[serde(default)]
+    pub road_level: u8,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,6 +55,12 @@ pub struct FactionSaveData {
     pub is_bankrupt: bool,
     #[serde(default)]
     pub prestige: (u32, u32, u32),
+    #[serde(default)]
+    pub vassals: Vec<FactionId>,
+    #[serde(default)]
+    pub overlord: Option<FactionId>,
+    #[serde(default)]
+    pub military_access_with: Vec<FactionId>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -257,6 +271,9 @@ pub fn save_campaign_state(
             relations: f.relations.clone(),
             is_bankrupt: f.is_bankrupt,
             prestige: f.prestige,
+            vassals: f.vassals.clone(),
+            overlord: f.overlord,
+            military_access_with: f.military_access_with.clone(),
         })
         .collect();
 
@@ -277,6 +294,10 @@ pub fn save_campaign_state(
             resistance_to_occupation: p.resistance_to_occupation,
             revealed_turns: p.revealed_turns,
             sabotaged_turns: p.sabotaged_turns,
+            commodity: p.commodity,
+            upper_tax: p.upper_tax,
+            lower_tax: p.lower_tax,
+            road_level: p.road_level,
         })
         .collect();
 

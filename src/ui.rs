@@ -351,11 +351,12 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
                 a.total_soldiers(),
                 a.stance,
                 has_cav,
+                a.retinue.len(),
             )
         })
     });
 
-    if let Some((army_idx, army_owner, army_prov_id, gen_name, gen_stars, has_moved, total_soldiers, army_stance, has_cavalry)) = army_snap {
+    if let Some((army_idx, army_owner, army_prov_id, gen_name, gen_stars, has_moved, total_soldiers, army_stance, has_cavalry, retinue_count)) = army_snap {
         let prov_name = &game.provinces[army_prov_id].name;
         let ribbon_h = 32.0;
         let ribbon_y = panel_y - ribbon_h - 2.0;
@@ -365,25 +366,26 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
         draw_line(0.0, ribbon_y, ribbon_w, ribbon_y, 1.5, Color::from_rgba(230, 185, 80, 255));
 
         let status_msg = if has_moved {
-            "Movement Expended this turn"
+            "Expended"
         } else {
-            "Click highlighted adjacent province to March / Attack"
+            "Ready to March"
         };
 
         let stars = "*".repeat(gen_stars as usize);
+        let ret_str = if retinue_count > 0 { format!(" | Staff: {} ancillaries", retinue_count) } else { "".to_string() };
         draw_text(
             &format!(
-                "SELECTED ARMY: {} [{}] | {} soldiers | Stationed: {} | {}",
-                gen_name, stars, total_soldiers, prov_name, status_msg
+                "ARMY: {} [{}] in {} | {} men | {}{}",
+                gen_name, stars, prov_name, total_soldiers, status_msg, ret_str
             ),
             18.0,
             ribbon_y + 21.0,
-            14.0,
+            13.5,
             Color::from_rgba(255, 230, 140, 255),
         );
 
         // [Deselect Unit (Esc)] Button
-        let deselect_btn = Rect::new(screen_w - 180.0, ribbon_y + 4.0, 165.0, 24.0);
+        let deselect_btn = Rect::new(screen_w - 150.0, ribbon_y + 4.0, 135.0, 24.0);
         let m = mouse_position();
         let m_vec = Vec2::new(m.0, m.1);
         let hov = deselect_btn.contains(m_vec);
@@ -403,26 +405,29 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
             1.2,
             Color::from_rgba(240, 190, 80, 255),
         );
-        draw_text("Deselect Unit [Esc]", deselect_btn.x + 14.0, deselect_btn.y + 16.5, 13.0, WHITE);
+        draw_text("Deselect [Esc]", deselect_btn.x + 12.0, deselect_btn.y + 16.5, 12.5, WHITE);
 
         if is_mouse_button_pressed(MouseButton::Left) && hov {
             game.selected_army = None;
         }
 
-        // [Ganimi Kava: Asymmetric Guerrilla Raid] Button
         let is_player_army = army_owner == game.player_faction;
         if is_player_army {
-            // Stance Toggle Button (March vs Fortified Camp)
-            let is_fortified = army_stance == CampaignStance::Fortified;
-            let stance_btn = Rect::new(screen_w - 380.0, ribbon_y + 4.0, 190.0, 24.0);
+            // Stance Toggle Button (March vs Fortified vs Ambush)
+            let stance_label = match army_stance {
+                CampaignStance::Normal => "Stance: [March]",
+                CampaignStance::Fortified => "Stance: [Fortified +25%]",
+                CampaignStance::Ambush => "Stance: [Ambush +35%]",
+                CampaignStance::Raiding => "Stance: [Raiding]",
+            };
+            let stance_btn = Rect::new(screen_w - 330.0, ribbon_y + 4.0, 170.0, 24.0);
             let stance_hov = stance_btn.contains(m_vec);
-            draw_rectangle(
-                stance_btn.x,
-                stance_btn.y,
-                stance_btn.w,
-                stance_btn.h,
-                if is_fortified { Color::from_rgba(60, 95, 130, 240) } else { Color::from_rgba(45, 50, 55, 220) },
-            );
+            let st_bg = match army_stance {
+                CampaignStance::Fortified => Color::from_rgba(60, 95, 130, 240),
+                CampaignStance::Ambush => Color::from_rgba(45, 115, 65, 240),
+                _ => Color::from_rgba(45, 50, 55, 220),
+            };
+            draw_rectangle(stance_btn.x, stance_btn.y, stance_btn.w, stance_btn.h, st_bg);
             draw_rectangle_lines(
                 stance_btn.x,
                 stance_btn.y,
@@ -432,15 +437,33 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
                 Color::from_rgba(180, 205, 235, 220),
             );
             draw_text(
-                if is_fortified { "Stance: [Fortified +25%]" } else { "Stance: [Set Fortify]" },
+                stance_label,
                 stance_btn.x + 8.0,
                 stance_btn.y + 16.5,
-                12.5,
+                12.0,
                 WHITE,
             );
             if is_mouse_button_pressed(MouseButton::Left) && stance_hov {
-                let new_st = if is_fortified { CampaignStance::Normal } else { CampaignStance::Fortified };
-                match game.set_army_stance(army_idx, new_st) {
+                let next_st = match army_stance {
+                    CampaignStance::Normal => CampaignStance::Fortified,
+                    CampaignStance::Fortified => CampaignStance::Ambush,
+                    CampaignStance::Ambush => CampaignStance::Normal,
+                    CampaignStance::Raiding => CampaignStance::Normal,
+                };
+                match game.set_army_stance(army_idx, next_st) {
+                    Ok(msg) => ui.set_toast(&msg),
+                    Err(err) => ui.set_toast(&err),
+                }
+            }
+
+            // Consolidate Regiments (Merge) Button
+            let merge_btn = Rect::new(screen_w - 475.0, ribbon_y + 4.0, 138.0, 24.0);
+            let merge_hov = merge_btn.contains(m_vec);
+            draw_rectangle(merge_btn.x, merge_btn.y, merge_btn.w, merge_btn.h, if merge_hov { Color::from_rgba(60, 120, 70, 240) } else { Color::from_rgba(40, 85, 50, 220) });
+            draw_rectangle_lines(merge_btn.x, merge_btn.y, merge_btn.w, merge_btn.h, 1.0, Color::from_rgba(150, 220, 160, 200));
+            draw_text("Merge Regts", merge_btn.x + 14.0, merge_btn.y + 16.5, 12.0, WHITE);
+            if is_mouse_button_pressed(MouseButton::Left) && merge_hov {
+                match game.merge_army_units(army_idx) {
                     Ok(msg) => ui.set_toast(&msg),
                     Err(err) => ui.set_toast(&err),
                 }
@@ -462,7 +485,7 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
                     .unwrap_or(adjacent_foreign[0]);
                 let target_p = &game.provinces[siege_target_idx];
                 if !target_p.is_under_siege {
-                    let siege_btn = Rect::new(screen_w - 565.0, ribbon_y + 4.0, 175.0, 24.0);
+                    let siege_btn = Rect::new(screen_w - 655.0, ribbon_y + 4.0, 172.0, 24.0);
                     let siege_hov = siege_btn.contains(m_vec);
                     draw_rectangle(
                         siege_btn.x,
@@ -479,6 +502,24 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
                             Err(err) => ui.set_toast(&err),
                         }
                     }
+                } else if target_p.besieger_army_idx == Some(army_idx) {
+                    let lift_btn = Rect::new(screen_w - 655.0, ribbon_y + 4.0, 172.0, 24.0);
+                    let lift_hov = lift_btn.contains(m_vec);
+                    draw_rectangle(
+                        lift_btn.x,
+                        lift_btn.y,
+                        lift_btn.w,
+                        lift_btn.h,
+                        if lift_hov { Color::from_rgba(50, 90, 130, 240) } else { Color::from_rgba(35, 60, 95, 220) },
+                    );
+                    draw_rectangle_lines(lift_btn.x, lift_btn.y, lift_btn.w, lift_btn.h, 1.2, Color::from_rgba(160, 200, 240, 220));
+                    draw_text(&format!("Lift Siege ({})", target_p.name), lift_btn.x + 8.0, lift_btn.y + 16.5, 12.0, WHITE);
+                    if is_mouse_button_pressed(MouseButton::Left) && lift_hov {
+                        match game.lift_siege(siege_target_idx) {
+                            Ok(msg) => ui.set_toast(&msg),
+                            Err(err) => ui.set_toast(&err),
+                        }
+                    }
                 }
             }
 
@@ -488,7 +529,7 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
                     .unwrap_or(adjacent_foreign[0]);
                 let target_p_name = &game.provinces[raid_target_idx].name;
 
-                let raid_btn = Rect::new(screen_w - 795.0, ribbon_y + 4.0, 220.0, 24.0);
+                let raid_btn = Rect::new(screen_w - 875.0, ribbon_y + 4.0, 210.0, 24.0);
                 let raid_hov = raid_btn.contains(m_vec);
 
                 draw_rectangle(
@@ -506,7 +547,7 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
                     1.2,
                     Color::from_rgba(255, 205, 80, 255),
                 );
-                draw_text(&format!("⚔ Ganimi Kava ({})", target_p_name), raid_btn.x + 10.0, raid_btn.y + 16.5, 12.5, WHITE);
+                draw_text(&format!("⚔ Ganimi Kava ({})", target_p_name), raid_btn.x + 8.0, raid_btn.y + 16.5, 12.0, WHITE);
 
                 if is_mouse_button_pressed(MouseButton::Left) && raid_hov {
                     match game.raid_province(army_idx, raid_target_idx) {
@@ -525,7 +566,7 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
     // Left Column: Selected Province Info
     if let Some(prov_idx) = game.selected_province {
         let is_visible = game.has_recon_visibility(prov_idx);
-        let (prov_name, capital_name, owner, population, base_wealth, public_order, tax_name, buildings, garrison, is_under_siege, siege_turns, is_blockaded, has_port) = {
+        let (prov_name, capital_name, owner, population, base_wealth, public_order, buildings, garrison, is_under_siege, siege_turns, is_blockaded, has_port, commodity, upper_tax, lower_tax) = {
             let p = &game.provinces[prov_idx];
             (
                 p.name.clone(),
@@ -534,13 +575,15 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
                 p.population,
                 p.base_wealth,
                 p.public_order,
-                p.tax_level.name(),
                 p.buildings.clone(),
                 p.garrison.clone(),
                 p.is_under_siege,
                 p.siege_turns_left,
                 p.is_port_blockaded,
                 p.port_name.is_some(),
+                p.commodity,
+                p.upper_tax,
+                p.lower_tax,
             )
         };
         let (f_color, f_accent) = owner.flag_colors();
@@ -577,34 +620,30 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
 
         // Stats line (masked under Fog of War if invisible)
         if is_visible {
-            let order_color = if public_order >= 0 {
-                Color::from_rgba(80, 220, 120, 255)
-            } else {
-                Color::from_rgba(240, 70, 70, 255)
-            };
+            let comm_str = commodity.map(|c| c.name()).unwrap_or("Agrarian Staples");
             draw_text(
                 &format!(
-                    "Population: {} | Base Wealth: {}g | Public Order: {}{}",
-                    population,
+                    "Pop: {}k | Wealth: {}g | Order: {}{} | Commodity: {}",
+                    population / 1000,
                     base_wealth,
                     if public_order >= 0 { "+" } else { "" },
-                    public_order
+                    public_order,
+                    comm_str
                 ),
                 15.0,
-                panel_y + 76.0,
-                16.0,
+                panel_y + 74.0,
+                14.0,
                 Color::from_rgba(225, 215, 195, 255),
             );
-            draw_text("Order Status", 15.0, panel_y + 96.0, 14.5, order_color);
         } else {
             draw_text(
-                "Population: ??? | Base Wealth: ???g | Public Order: ???",
+                "Population: ??? | Base Wealth: ???g | Public Order: ??? | Commodity: ???",
                 15.0,
-                panel_y + 76.0,
-                16.0,
+                panel_y + 74.0,
+                14.0,
                 Color::from_rgba(180, 170, 155, 255),
             );
-            draw_text("[Fog of War Active: Infiltrate Subah to Scout]", 15.0, panel_y + 96.0, 14.5, Color::from_rgba(240, 185, 90, 255));
+            draw_text("[Fog of War Active: Infiltrate Subah to Scout]", 15.0, panel_y + 92.0, 13.0, Color::from_rgba(240, 185, 90, 255));
         }
 
         let m = mouse_position();
@@ -612,21 +651,21 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
 
         // Buttons row
         if owner == game.player_faction {
-            // Tax Level button
-            let tax_btn_rect = Rect::new(15.0, panel_y + 106.0, 135.0, 30.0);
-            draw_rectangle(tax_btn_rect.x, tax_btn_rect.y, tax_btn_rect.w, tax_btn_rect.h, Color::from_rgba(40, 35, 28, 220));
-            draw_rectangle_lines(tax_btn_rect.x, tax_btn_rect.y, tax_btn_rect.w, tax_btn_rect.h, 1.0, Color::from_rgba(180, 145, 75, 200));
-            draw_text(
-                &format!("Tax: {}", tax_name),
-                tax_btn_rect.x + 10.0,
-                tax_btn_rect.y + 20.0,
-                14.0,
-                Color::from_rgba(235, 215, 160, 255),
-            );
+            // Upper Tax button (affects Town Wealth growth)
+            let upper_tax_btn = Rect::new(15.0, panel_y + 96.0, 120.0, 26.0);
+            draw_rectangle(upper_tax_btn.x, upper_tax_btn.y, upper_tax_btn.w, upper_tax_btn.h, Color::from_rgba(40, 35, 28, 220));
+            draw_rectangle_lines(upper_tax_btn.x, upper_tax_btn.y, upper_tax_btn.w, upper_tax_btn.h, 1.0, Color::from_rgba(180, 145, 75, 200));
+            draw_text(&format!("Upper: {}", upper_tax.name()), upper_tax_btn.x + 6.0, upper_tax_btn.y + 17.0, 11.5, Color::from_rgba(245, 220, 150, 255));
+
+            // Lower Tax button (affects Public Order & Pop)
+            let lower_tax_btn = Rect::new(140.0, panel_y + 96.0, 120.0, 26.0);
+            draw_rectangle(lower_tax_btn.x, lower_tax_btn.y, lower_tax_btn.w, lower_tax_btn.h, Color::from_rgba(40, 35, 28, 220));
+            draw_rectangle_lines(lower_tax_btn.x, lower_tax_btn.y, lower_tax_btn.w, lower_tax_btn.h, 1.0, Color::from_rgba(180, 145, 75, 200));
+            draw_text(&format!("Lower: {}", lower_tax.name()), lower_tax_btn.x + 6.0, lower_tax_btn.y + 17.0, 11.5, Color::from_rgba(215, 200, 160, 255));
 
             // Tax Exemption Toggle
-            let is_exempt = game.provinces[prov_idx].tax_level == TaxLevel::Exempt;
-            let exempt_btn = Rect::new(155.0, panel_y + 106.0, 95.0, 30.0);
+            let is_exempt = game.provinces[prov_idx].lower_tax == TaxLevel::Exempt && game.provinces[prov_idx].upper_tax == TaxLevel::Exempt;
+            let exempt_btn = Rect::new(265.0, panel_y + 96.0, 75.0, 26.0);
             let ex_bg = if is_exempt {
                 Color::from_rgba(40, 120, 50, 230)
             } else {
@@ -634,27 +673,34 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
             };
             draw_rectangle(exempt_btn.x, exempt_btn.y, exempt_btn.w, exempt_btn.h, ex_bg);
             draw_rectangle_lines(exempt_btn.x, exempt_btn.y, exempt_btn.w, exempt_btn.h, 1.0, if is_exempt { Color::from_rgba(120, 230, 140, 220) } else { Color::from_rgba(150, 130, 85, 180) });
-            draw_text(if is_exempt { "EXEMPT" } else { "TAXABLE" }, exempt_btn.x + 14.0, exempt_btn.y + 20.0, 13.0, WHITE);
+            draw_text(if is_exempt { "EXEMPT" } else { "TAXABLE" }, exempt_btn.x + 8.0, exempt_btn.y + 17.0, 11.5, WHITE);
 
-            let recruit_btn = Rect::new(260.0, panel_y + 106.0, 105.0, 30.0);
+            let recruit_btn = Rect::new(345.0, panel_y + 96.0, 88.0, 26.0);
             draw_rectangle(recruit_btn.x, recruit_btn.y, recruit_btn.w, recruit_btn.h, Color::from_rgba(60, 95, 45, 240));
             draw_rectangle_lines(recruit_btn.x, recruit_btn.y, recruit_btn.w, recruit_btn.h, 1.5, Color::from_rgba(200, 230, 150, 200));
-            draw_text("+ Recruit", recruit_btn.x + 14.0, recruit_btn.y + 20.0, 14.0, WHITE);
+            draw_text("+ Recruit", recruit_btn.x + 10.0, recruit_btn.y + 17.0, 12.5, WHITE);
 
-            let build_btn = Rect::new(375.0, panel_y + 106.0, 105.0, 30.0);
+            let build_btn = Rect::new(438.0, panel_y + 96.0, 95.0, 26.0);
             draw_rectangle(build_btn.x, build_btn.y, build_btn.w, build_btn.h, Color::from_rgba(95, 70, 35, 240));
             draw_rectangle_lines(build_btn.x, build_btn.y, build_btn.w, build_btn.h, 1.5, Color::from_rgba(230, 195, 120, 200));
-            draw_text("+ Construct", build_btn.x + 12.0, build_btn.y + 20.0, 14.0, WHITE);
+            draw_text("+ Construct", build_btn.x + 8.0, build_btn.y + 17.0, 12.5, WHITE);
 
             if is_mouse_button_pressed(MouseButton::Left) {
-                if tax_btn_rect.contains(m_pos) {
-                    game.provinces[prov_idx].tax_level = game.provinces[prov_idx].tax_level.next();
+                if upper_tax_btn.contains(m_pos) {
+                    game.provinces[prov_idx].upper_tax = game.provinces[prov_idx].upper_tax.next();
+                } else if lower_tax_btn.contains(m_pos) {
+                    game.provinces[prov_idx].lower_tax = game.provinces[prov_idx].lower_tax.next();
+                    game.provinces[prov_idx].tax_level = game.provinces[prov_idx].lower_tax;
                 } else if exempt_btn.contains(m_pos) {
-                    if game.provinces[prov_idx].tax_level == TaxLevel::Exempt {
+                    if is_exempt {
                         game.provinces[prov_idx].tax_level = TaxLevel::Normal;
+                        game.provinces[prov_idx].upper_tax = TaxLevel::Normal;
+                        game.provinces[prov_idx].lower_tax = TaxLevel::Normal;
                         ui.set_toast("Taxation restored to Normal.");
                     } else {
                         game.provinces[prov_idx].tax_level = TaxLevel::Exempt;
+                        game.provinces[prov_idx].upper_tax = TaxLevel::Exempt;
+                        game.provinces[prov_idx].lower_tax = TaxLevel::Exempt;
                         ui.set_toast("Province granted Tax Exemption (+4 Public Order).");
                     }
                 } else if recruit_btn.contains(m_pos) {
@@ -796,6 +842,20 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
             draw_text(u.unit_type.name(), u_card.x + 5.0, u_card.y + 18.0, 11.5, WHITE);
             draw_text(&format!("{} men", u.soldiers), u_card.x + 5.0, u_card.y + 36.0, 13.0, Color::from_rgba(210, 190, 140, 255));
 
+            // Disband button if player province
+            if owner == game.player_faction {
+                let dis_btn = Rect::new(u_card.x + u_card.w - 18.0, u_card.y + 3.0, 15.0, 15.0);
+                draw_rectangle(dis_btn.x, dis_btn.y, dis_btn.w, dis_btn.h, Color::from_rgba(150, 35, 25, 220));
+                draw_text("x", dis_btn.x + 4.0, dis_btn.y + 11.0, 11.0, WHITE);
+                if is_mouse_button_pressed(MouseButton::Left) && dis_btn.contains(m_pos) {
+                    match game.disband_garrison_unit(prov_idx, u_idx) {
+                        Ok(msg) => ui.set_toast(&msg),
+                        Err(err) => ui.set_toast(&err),
+                    }
+                    break;
+                }
+            }
+
             if let Some(target_army_idx) = my_army_present {
                 let attach_btn = Rect::new(u_card.x + 4.0, u_card.y + 44.0, 94.0, 20.0);
                 let m = mouse_position();
@@ -840,16 +900,30 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
                 draw_text(&format!("{} men | {}", army.soldiers, move_status), a_rect.x + 8.0, a_rect.y + 35.0, 12.0, Color::from_rgba(230, 205, 140, 255));
 
                 if is_selected && army.owner == game.player_faction && game.armies[a_idx].units.len() > 1 {
-                    let detach_btn = Rect::new(a_rect.x + a_rect.w - 76.0, a_rect.y + 24.0, 72.0, 16.0);
+                    let detach_btn = Rect::new(a_rect.x + a_rect.w - 74.0, a_rect.y + 24.0, 70.0, 16.0);
                     let m = mouse_position();
                     let det_hov = detach_btn.contains(Vec2::new(m.0, m.1));
                     draw_rectangle(detach_btn.x, detach_btn.y, detach_btn.w, detach_btn.h, if det_hov { Color::from_rgba(180, 55, 35, 240) } else { Color::from_rgba(135, 40, 25, 220) });
                     draw_text("- Detach", detach_btn.x + 8.0, detach_btn.y + 12.0, 11.0, WHITE);
 
-                    if is_mouse_button_pressed(MouseButton::Left) && det_hov {
-                        let last_unit = game.armies[a_idx].units.len() - 1;
-                        if game.transfer_army_to_garrison(a_idx, last_unit) {
-                            ui.set_toast("Regiment detached to local garrison.");
+                    let disband_btn = Rect::new(a_rect.x + a_rect.w - 148.0, a_rect.y + 24.0, 70.0, 16.0);
+                    let dis_hov = disband_btn.contains(Vec2::new(m.0, m.1));
+                    draw_rectangle(disband_btn.x, disband_btn.y, disband_btn.w, disband_btn.h, if dis_hov { Color::from_rgba(160, 35, 30, 240) } else { Color::from_rgba(110, 30, 25, 220) });
+                    draw_text("Disband", disband_btn.x + 8.0, disband_btn.y + 12.0, 11.0, WHITE);
+
+                    if is_mouse_button_pressed(MouseButton::Left) {
+                        if det_hov {
+                            let last_unit = game.armies[a_idx].units.len() - 1;
+                            if game.transfer_army_to_garrison(a_idx, last_unit) {
+                                ui.set_toast("Regiment detached to local garrison.");
+                                break;
+                            }
+                        } else if dis_hov {
+                            let last_unit = game.armies[a_idx].units.len() - 1;
+                            match game.disband_army_unit(a_idx, last_unit) {
+                                Ok(msg) => ui.set_toast(&msg),
+                                Err(err) => ui.set_toast(&err),
+                            }
                             break;
                         }
                     }
@@ -985,15 +1059,15 @@ pub fn render_construction_modal(game: &mut GameState, ui: &mut UiState) {
         None => return,
     };
 
-    let w = 480.0;
-    let h = 330.0;
+    let w = 520.0;
+    let h = 470.0;
     let x = (screen_width() - w) / 2.0;
     let y = (screen_height() - h) / 2.0;
 
     draw_rectangle(x, y, w, h, Color::from_rgba(24, 20, 16, 250));
     draw_rectangle_lines(x, y, w, h, 2.5, Color::from_rgba(220, 180, 80, 255));
 
-    draw_text("Provincial Construction", x + 20.0, y + 28.0, 19.0, Color::from_rgba(245, 220, 150, 255));
+    draw_text("Provincial Construction & Infrastructure", x + 20.0, y + 28.0, 19.0, Color::from_rgba(245, 220, 150, 255));
 
     let close_btn = Rect::new(x + w - 35.0, y + 10.0, 25.0, 25.0);
     draw_rectangle(close_btn.x, close_btn.y, close_btn.w, close_btn.h, Color::from_rgba(160, 40, 30, 220));
@@ -1011,25 +1085,28 @@ pub fn render_construction_modal(game: &mut GameState, ui: &mut UiState) {
         BuildingType::Marketplace,
         BuildingType::TradingPort,
         BuildingType::TempleMosque,
+        BuildingType::CollegeOfLogic,
+        BuildingType::TextileLoom,
+        BuildingType::RoadNetwork,
     ];
 
-    let mut row_y = y + 50.0;
+    let mut row_y = y + 44.0;
     for b in buildings {
-        let card_rect = Rect::new(x + 15.0, row_y, w - 30.0, 46.0);
+        let card_rect = Rect::new(x + 15.0, row_y, w - 30.0, 42.0);
         draw_rectangle(card_rect.x, card_rect.y, card_rect.w, card_rect.h, Color::from_rgba(40, 32, 24, 220));
         draw_rectangle_lines(card_rect.x, card_rect.y, card_rect.w, card_rect.h, 1.0, Color::from_rgba(180, 140, 70, 180));
 
-        draw_text(b.name(), card_rect.x + 10.0, card_rect.y + 18.0, 14.0, Color::from_rgba(245, 230, 180, 255));
+        draw_text(b.name(), card_rect.x + 10.0, card_rect.y + 16.0, 13.5, Color::from_rgba(245, 230, 180, 255));
         draw_text(
             &format!("Cost: {}g | {}", b.cost(), b.effect_description()),
             card_rect.x + 10.0,
-            card_rect.y + 35.0,
+            card_rect.y + 32.0,
             11.0,
             Color::from_rgba(200, 190, 160, 255),
         );
 
         let already_built = game.provinces[prov_idx].buildings.contains(&b);
-        let build_btn = Rect::new(card_rect.x + card_rect.w - 85.0, card_rect.y + 10.0, 75.0, 26.0);
+        let build_btn = Rect::new(card_rect.x + card_rect.w - 85.0, card_rect.y + 8.0, 75.0, 26.0);
         if already_built {
             draw_rectangle(build_btn.x, build_btn.y, build_btn.w, build_btn.h, Color::from_rgba(60, 60, 60, 180));
             draw_text("Built", build_btn.x + 22.0, build_btn.y + 18.0, 12.0, Color::from_rgba(170, 170, 170, 255));
@@ -1048,7 +1125,7 @@ pub fn render_construction_modal(game: &mut GameState, ui: &mut UiState) {
             }
         }
 
-        row_y += 50.0;
+        row_y += 48.0;
     }
 }
 
@@ -2395,9 +2472,12 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
         FactionId::Mysore,
         FactionId::Portugal,
         FactionId::Independent,
+        FactionId::Sikh,
+        FactionId::Hyderabad,
+        FactionId::Bengal,
     ];
 
-    let mut card_y = content_y + 28.0;
+    let mut card_y = content_y + 24.0;
     for &f_id in &factions_to_show {
         let fac = match game.factions.get(&f_id) {
             Some(f) => f,
@@ -2405,7 +2485,7 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
         };
 
         let is_sel = game.selected_diplo_faction == Some(f_id);
-        let f_card = Rect::new(40.0, card_y, left_w, 76.0);
+        let f_card = Rect::new(40.0, card_y, left_w, 60.0);
         let bg_color = if is_sel {
             Color::from_rgba(140, 95, 30, 240)
         } else {
@@ -2415,11 +2495,11 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
         draw_rectangle_lines(f_card.x, f_card.y, f_card.w, f_card.h, 1.5, if is_sel { Color::from_rgba(245, 210, 80, 255) } else { Color::from_rgba(140, 110, 60, 180) });
 
         let (c1, c2) = f_id.flag_colors();
-        draw_rectangle(f_card.x + 8.0, f_card.y + 10.0, 26.0, 26.0, c1);
-        draw_rectangle_lines(f_card.x + 8.0, f_card.y + 10.0, 26.0, 26.0, 1.5, c2);
+        draw_rectangle(f_card.x + 8.0, f_card.y + 8.0, 24.0, 24.0, c1);
+        draw_rectangle_lines(f_card.x + 8.0, f_card.y + 8.0, 24.0, 24.0, 1.5, c2);
 
-        draw_text_bold(&fac.name, f_card.x + 42.0, f_card.y + 24.0, 15.0, WHITE);
-        draw_text(&format!("Ruler: {}", fac.leader_name), f_card.x + 42.0, f_card.y + 42.0, 12.5, Color::from_rgba(215, 200, 170, 255));
+        draw_text_bold(&fac.name, f_card.x + 38.0, f_card.y + 19.0, 13.5, WHITE);
+        draw_text(&format!("Ruler: {}", fac.leader_name), f_card.x + 38.0, f_card.y + 35.0, 11.5, Color::from_rgba(215, 200, 170, 255));
 
         let p_fac = game.factions.get(&game.player_faction).unwrap();
         let rel = *p_fac.relations.get(&f_id).unwrap_or(&0);
@@ -2432,7 +2512,7 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
         } else {
             ("Hostile / At War", Color::from_rgba(240, 60, 60, 255))
         };
-        draw_text(&format!("Attitude: {} ({})", rel_str.0, rel), f_card.x + 42.0, f_card.y + 62.0, 12.0, rel_str.1);
+        draw_text(&format!("Attitude: {} ({})", rel_str.0, rel), f_card.x + 38.0, f_card.y + 51.0, 11.0, rel_str.1);
 
         if is_mouse_button_pressed(MouseButton::Left) {
             let m = mouse_position();
@@ -2441,7 +2521,7 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
             }
         }
 
-        card_y += 84.0;
+        card_y += 66.0;
     }
 
     // Right Pane: Selected Faction Dossier & Diplomatic Actions
@@ -2454,35 +2534,44 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
 
         // Header info
         let (tc1, tc2) = target_id.flag_colors();
-        draw_rectangle(right_x + 18.0, content_y + 25.0, 42.0, 42.0, tc1);
-        draw_rectangle_lines(right_x + 18.0, content_y + 25.0, 42.0, 42.0, 2.0, tc2);
+        draw_rectangle(right_x + 18.0, content_y + 20.0, 38.0, 38.0, tc1);
+        draw_rectangle_lines(right_x + 18.0, content_y + 20.0, 38.0, 38.0, 2.0, tc2);
 
-        draw_text_bold(&target_fac.name, right_x + 72.0, content_y + 44.0, 22.0, Color::from_rgba(245, 225, 150, 255));
-        draw_text(&format!("Sovereign Leader: {}", target_fac.leader_name), right_x + 72.0, content_y + 65.0, 15.0, Color::from_rgba(210, 195, 160, 255));
+        draw_text_bold(&target_fac.name, right_x + 68.0, content_y + 36.0, 20.0, Color::from_rgba(245, 225, 150, 255));
+        draw_text(&format!("Sovereign Leader: {}", target_fac.leader_name), right_x + 68.0, content_y + 54.0, 14.0, Color::from_rgba(210, 195, 160, 255));
 
         // Treaties status line
         let is_at_war = p_fac.wars.contains(&target_id);
         let is_trading = p_fac.trade_partners.contains(&target_id);
         let is_allied = p_fac.alliances.contains(&target_id);
+        let is_vassal = p_fac.vassals.contains(&target_id);
+        let is_overlord = target_fac.vassals.contains(&game.player_faction);
+        let has_mil_access = p_fac.military_access_with.contains(&target_id);
 
         let status_text = if is_at_war {
             "CURRENT STATUS: AT OPEN WAR"
+        } else if is_vassal {
+            "CURRENT STATUS: SWORN PROTECTORATE VASSAL"
+        } else if is_overlord {
+            "CURRENT STATUS: OVERLORD SOVEREIGN"
         } else if is_allied {
             "CURRENT STATUS: MILITARY ALLIANCE"
         } else {
             "CURRENT STATUS: PEACEFUL COEXISTENCE"
         };
-        let status_color = if is_at_war { Color::from_rgba(240, 60, 60, 255) } else if is_allied { Color::from_rgba(80, 220, 100, 255) } else { Color::from_rgba(220, 200, 120, 255) };
-        draw_text_bold(status_text, right_x + 20.0, content_y + 105.0, 15.0, status_color);
+        let status_color = if is_at_war { Color::from_rgba(240, 60, 60, 255) } else if is_allied || is_vassal { Color::from_rgba(80, 220, 100, 255) } else { Color::from_rgba(220, 200, 120, 255) };
+        draw_text_bold(status_text, right_x + 20.0, content_y + 84.0, 14.5, status_color);
 
         let trade_str = if is_trading { "Active (+250g/turn)" } else { "None" };
-        draw_text(&format!("Bilateral Trade Corridor: {}", trade_str), right_x + 20.0, content_y + 130.0, 14.0, if is_trading { Color::from_rgba(100, 220, 140, 255) } else { Color::from_rgba(190, 180, 160, 255) });
+        let transit_str = if has_mil_access { "Permitted (Military Access Active)" } else { "Closed Border" };
+        let fealty_str = if is_vassal { "Sworn Vassal (50% Tribute)" } else if is_overlord { "Imperial Overlord" } else { "Independent Realm" };
 
+        draw_text(&format!("Bilateral Trade: {} | Border Transit: {}", trade_str, transit_str), right_x + 20.0, content_y + 106.0, 12.5, Color::from_rgba(200, 190, 170, 255));
         let rel = *p_fac.relations.get(&target_id).unwrap_or(&0);
-        draw_text(&format!("Court Trust & Relations: {} / 100", rel), right_x + 20.0, content_y + 155.0, 14.0, Color::from_rgba(230, 215, 180, 255));
+        draw_text(&format!("Protectorate Status: {} | Court Trust: {} / 100", fealty_str, rel), right_x + 20.0, content_y + 126.0, 12.5, Color::from_rgba(220, 205, 175, 255));
 
         // Actions Grid
-        draw_text("Available Diplomatic Proposals:", right_x + 20.0, content_y + 195.0, 16.5, Color::from_rgba(240, 215, 130, 255));
+        draw_text("Available Diplomatic Proposals:", right_x + 20.0, content_y + 155.0, 15.0, Color::from_rgba(240, 215, 130, 255));
 
         let actions = [
             (
@@ -2490,6 +2579,18 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
                 "Establish Trade Agreement",
                 "Opens overland and sea trade (+250g/turn to both realms)",
                 !is_trading && !is_at_war,
+            ),
+            (
+                DiploAction::GrantMilitaryAccess,
+                "Grant Military Access",
+                "Permits armies to traverse borders peacefully without war",
+                !has_mil_access && !is_at_war,
+            ),
+            (
+                DiploAction::SubjugateVassal,
+                "Demand Protectorate Vassalage",
+                "Subjugates realm as sworn vassal (pays 50% surplus profit)",
+                !is_vassal && target_fac.overlord.is_none() && !is_at_war,
             ),
             (
                 DiploAction::SmallGift,
@@ -2529,9 +2630,9 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
             ),
         ];
 
-        let mut btn_y = content_y + 215.0;
+        let mut btn_y = content_y + 175.0;
         let btn_w = right_w - 40.0;
-        let btn_h = 36.0;
+        let btn_h = 32.0;
 
         for (action, title, desc, enabled) in actions {
             let b_rect = Rect::new(right_x + 20.0, btn_y, btn_w, btn_h);
@@ -2550,8 +2651,8 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
             draw_rectangle_lines(b_rect.x, b_rect.y, b_rect.w, b_rect.h, 1.2, if enabled { Color::from_rgba(210, 175, 90, 200) } else { Color::from_rgba(90, 80, 70, 140) });
 
             let title_color = if enabled { Color::from_rgba(245, 230, 160, 255) } else { Color::from_rgba(130, 120, 105, 255) };
-            draw_text_bold(title, b_rect.x + 12.0, b_rect.y + 22.0, 13.5, title_color);
-            draw_text(desc, b_rect.x + 280.0, b_rect.y + 22.0, 12.0, Color::from_rgba(195, 185, 165, 255));
+            draw_text_bold(title, b_rect.x + 12.0, b_rect.y + 20.0, 13.0, title_color);
+            draw_text(desc, b_rect.x + 280.0, b_rect.y + 20.0, 11.5, Color::from_rgba(195, 185, 165, 255));
 
             if enabled && is_mouse_button_pressed(MouseButton::Left) && hov {
                 match game.conduct_diplomacy(target_id, action) {
@@ -2560,7 +2661,7 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
                 }
             }
 
-            btn_y += 42.0;
+            btn_y += 37.0;
         }
     }
 }
@@ -2624,13 +2725,14 @@ pub fn render_ledger_view(game: &mut GameState, ui: &mut UiState) {
 
     let cols = [
         ("Province", 15.0),
-        ("Seat of Power", 160.0),
-        ("Controlled By", 330.0),
-        ("Population", 510.0),
-        ("Wealth", 640.0),
-        ("Tax", 740.0),
-        ("Order", 840.0),
-        ("Garrison", 930.0),
+        ("Seat of Power", 155.0),
+        ("Controlled By", 305.0),
+        ("Commodity", 445.0),
+        ("Pop", 575.0),
+        ("Wealth", 645.0),
+        ("Tax (U/L)", 725.0),
+        ("Order", 815.0),
+        ("Garrison", 885.0),
     ];
 
     for (name, offset) in cols {
@@ -2662,30 +2764,40 @@ pub fn render_ledger_view(game: &mut GameState, ui: &mut UiState) {
         }
 
         // Draw col data
-        draw_text_bold(&p.name, table_x + 15.0, row_y + 16.0, 12.5, WHITE);
-        draw_text(&p.capital_name, table_x + 160.0, row_y + 16.0, 12.0, Color::from_rgba(215, 200, 175, 255));
+        draw_text_bold(&p.name, table_x + 15.0, row_y + 16.0, 12.0, WHITE);
+        draw_text(&p.capital_name, table_x + 155.0, row_y + 16.0, 11.5, Color::from_rgba(215, 200, 175, 255));
 
         let (c1, _) = p.owner.flag_colors();
-        draw_rectangle(table_x + 330.0, row_y + 4.0, 12.0, 12.0, c1);
-        draw_text(p.owner.name(), table_x + 348.0, row_y + 16.0, 12.0, Color::from_rgba(230, 215, 180, 255));
+        draw_rectangle(table_x + 305.0, row_y + 4.0, 12.0, 12.0, c1);
+        draw_text(p.owner.name(), table_x + 322.0, row_y + 16.0, 11.5, Color::from_rgba(230, 215, 180, 255));
 
-        draw_text(&format!("{}k", p.population / 1000), table_x + 510.0, row_y + 16.0, 12.0, Color::from_rgba(210, 195, 165, 255));
-        draw_text(&format!("{}g", p.base_wealth), table_x + 640.0, row_y + 16.0, 12.0, Color::from_rgba(240, 210, 110, 255));
-
-        let tax_str = match p.tax_level {
-            TaxLevel::Exempt => "Exempt",
-            TaxLevel::Low => "Low",
-            TaxLevel::Normal => "Normal",
-            TaxLevel::High => "High",
-            TaxLevel::Extortionate => "Extortionate",
+        let comm_str = match p.commodity {
+            Some(crate::models::CommodityType::Spices) => "Spices",
+            Some(crate::models::CommodityType::Cotton) => "Cotton",
+            Some(crate::models::CommodityType::Silk) => "Silk",
+            Some(crate::models::CommodityType::Saltpetre) => "Saltpetre",
+            None => "Agrarian",
         };
-        draw_text(tax_str, table_x + 740.0, row_y + 16.0, 12.0, Color::from_rgba(200, 190, 170, 255));
+        draw_text(comm_str, table_x + 445.0, row_y + 16.0, 11.5, Color::from_rgba(240, 210, 115, 255));
+
+        draw_text(&format!("{}k", p.population / 1000), table_x + 575.0, row_y + 16.0, 11.5, Color::from_rgba(210, 195, 165, 255));
+        draw_text(&format!("{}g", p.base_wealth), table_x + 645.0, row_y + 16.0, 11.5, Color::from_rgba(240, 210, 110, 255));
+
+        let tax_code = |t: TaxLevel| match t {
+            TaxLevel::Exempt => "Ex",
+            TaxLevel::Low => "Lo",
+            TaxLevel::Normal => "Norm",
+            TaxLevel::High => "Hi",
+            TaxLevel::Extortionate => "Ext",
+        };
+        let tax_str = format!("{}/{}", tax_code(p.upper_tax), tax_code(p.lower_tax));
+        draw_text(&tax_str, table_x + 725.0, row_y + 16.0, 11.5, Color::from_rgba(200, 190, 170, 255));
 
         let order_color = if p.public_order >= 0 { Color::from_rgba(80, 220, 120, 255) } else { Color::from_rgba(240, 70, 70, 255) };
-        draw_text(&format!("{}{}", if p.public_order >= 0 { "+" } else { "" }, p.public_order), table_x + 840.0, row_y + 16.0, 12.0, order_color);
+        draw_text(&format!("{}{}", if p.public_order >= 0 { "+" } else { "" }, p.public_order), table_x + 815.0, row_y + 16.0, 12.0, order_color);
 
         let garrison_men: u32 = p.garrison.iter().map(|u| u.soldiers).sum();
-        draw_text(&format!("{} soldiers ({} rgts)", garrison_men, p.garrison.len()), table_x + 930.0, row_y + 16.0, 12.0, Color::from_rgba(220, 205, 170, 255));
+        draw_text(&format!("{} men ({} rgts)", garrison_men, p.garrison.len()), table_x + 885.0, row_y + 16.0, 11.5, Color::from_rgba(220, 205, 170, 255));
 
         if is_mouse_button_pressed(MouseButton::Left) && hov {
             game.selected_province = Some(p_idx);
