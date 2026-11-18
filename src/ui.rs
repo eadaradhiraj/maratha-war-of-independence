@@ -732,26 +732,26 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
             }
         } else {
             // Foreign Subah: Covert Operations Buttons
-            let inf_btn = Rect::new(15.0, panel_y + 106.0, 115.0, 30.0);
-            let sab_btn = Rect::new(135.0, panel_y + 106.0, 115.0, 30.0);
-            let ass_btn = Rect::new(255.0, panel_y + 106.0, 130.0, 30.0);
-            let steal_btn = Rect::new(390.0, panel_y + 106.0, 130.0, 30.0);
+            let inf_btn = Rect::new(15.0, panel_y + 96.0, 115.0, 26.0);
+            let sab_btn = Rect::new(135.0, panel_y + 96.0, 115.0, 26.0);
+            let ass_btn = Rect::new(255.0, panel_y + 96.0, 130.0, 26.0);
+            let steal_btn = Rect::new(390.0, panel_y + 96.0, 130.0, 26.0);
 
             draw_rectangle(inf_btn.x, inf_btn.y, inf_btn.w, inf_btn.h, Color::from_rgba(50, 70, 95, 230));
             draw_rectangle_lines(inf_btn.x, inf_btn.y, inf_btn.w, inf_btn.h, 1.0, Color::from_rgba(150, 200, 240, 200));
-            draw_text("🕵 Infiltrate", inf_btn.x + 8.0, inf_btn.y + 20.0, 12.0, WHITE);
+            draw_text("🕵 Infiltrate", inf_btn.x + 8.0, inf_btn.y + 17.5, 12.0, WHITE);
 
             draw_rectangle(sab_btn.x, sab_btn.y, sab_btn.w, sab_btn.h, Color::from_rgba(95, 55, 30, 230));
             draw_rectangle_lines(sab_btn.x, sab_btn.y, sab_btn.w, sab_btn.h, 1.0, Color::from_rgba(240, 160, 90, 200));
-            draw_text("💣 Sabotage", sab_btn.x + 8.0, sab_btn.y + 20.0, 12.0, WHITE);
+            draw_text("💣 Sabotage", sab_btn.x + 8.0, sab_btn.y + 17.5, 12.0, WHITE);
 
             draw_rectangle(ass_btn.x, ass_btn.y, ass_btn.w, ass_btn.h, Color::from_rgba(110, 30, 35, 230));
             draw_rectangle_lines(ass_btn.x, ass_btn.y, ass_btn.w, ass_btn.h, 1.0, Color::from_rgba(250, 120, 130, 200));
-            draw_text("🎯 Assassinate", ass_btn.x + 8.0, ass_btn.y + 20.0, 12.0, WHITE);
+            draw_text("🎯 Assassinate", ass_btn.x + 8.0, ass_btn.y + 17.5, 12.0, WHITE);
 
             draw_rectangle(steal_btn.x, steal_btn.y, steal_btn.w, steal_btn.h, Color::from_rgba(65, 45, 95, 230));
             draw_rectangle_lines(steal_btn.x, steal_btn.y, steal_btn.w, steal_btn.h, 1.0, Color::from_rgba(190, 150, 240, 200));
-            draw_text("📜 Steal Tech", steal_btn.x + 8.0, steal_btn.y + 20.0, 12.0, WHITE);
+            draw_text("📜 Steal Tech", steal_btn.x + 8.0, steal_btn.y + 17.5, 12.0, WHITE);
 
             if is_mouse_button_pressed(MouseButton::Left) {
                 if inf_btn.contains(m_pos) {
@@ -780,11 +780,11 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
 
         // Coastal Harbor Blockade Toggle Button
         if has_port {
-            let port_btn = Rect::new(525.0, panel_y + 106.0, 125.0, 30.0);
+            let port_btn = Rect::new(525.0, panel_y + 96.0, 125.0, 26.0);
             let port_bg = if is_blockaded { Color::from_rgba(150, 40, 30, 230) } else { Color::from_rgba(40, 75, 95, 220) };
             draw_rectangle(port_btn.x, port_btn.y, port_btn.w, port_btn.h, port_bg);
             draw_rectangle_lines(port_btn.x, port_btn.y, port_btn.w, port_btn.h, 1.0, Color::from_rgba(180, 210, 230, 200));
-            draw_text(if is_blockaded { "⚓ [BLOCKADED]" } else { "⚓ Harbor: [OPEN]" }, port_btn.x + 8.0, port_btn.y + 20.0, 12.0, WHITE);
+            draw_text(if is_blockaded { "⚓ [BLOCKADED]" } else { "⚓ Harbor: [OPEN]" }, port_btn.x + 8.0, port_btn.y + 17.5, 12.0, WHITE);
 
             if is_mouse_button_pressed(MouseButton::Left) && port_btn.contains(m_pos) {
                 match game.toggle_port_blockade(prov_idx) {
@@ -794,18 +794,64 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
             }
         }
 
+        let right_x = screen_w - 470.0;
+
+        // Active Queues (Muster & Construction with remaining turns countdown)
+        draw_text("Queues:", 15.0, panel_y + 141.0, 13.5, Color::from_rgba(180, 165, 140, 255));
+        if owner == game.player_faction {
+            let mut q_x = 80.0;
+            let mut any_queue = false;
+
+            let p_ref = &game.provinces[prov_idx];
+            for r_order in &p_ref.recruitment_queue {
+                let badge_w = 145.0;
+                if q_x + badge_w > right_x - 20.0 {
+                    break;
+                }
+                any_queue = true;
+                draw_rectangle(q_x, panel_y + 127.0, badge_w, 20.0, Color::from_rgba(35, 65, 45, 230));
+                draw_rectangle_lines(q_x, panel_y + 127.0, badge_w, 20.0, 1.0, Color::from_rgba(140, 210, 150, 220));
+                draw_text(&format!("⚔ {} ({}T)", r_order.unit_type.name(), r_order.turns_remaining), q_x + 5.0, panel_y + 141.0, 11.0, WHITE);
+                q_x += badge_w + 6.0;
+            }
+
+            for c_order in &p_ref.construction_queue {
+                let badge_w = 150.0;
+                if q_x + badge_w > right_x - 20.0 {
+                    break;
+                }
+                any_queue = true;
+                draw_rectangle(q_x, panel_y + 127.0, badge_w, 20.0, Color::from_rgba(65, 45, 25, 230));
+                draw_rectangle_lines(q_x, panel_y + 127.0, badge_w, 20.0, 1.0, Color::from_rgba(230, 175, 90, 220));
+                draw_text(&format!("🏗 {} ({}T)", c_order.building.name(), c_order.turns_remaining), q_x + 5.0, panel_y + 141.0, 11.0, WHITE);
+                q_x += badge_w + 6.0;
+            }
+
+            if !any_queue {
+                draw_text("Idle - No active mustering or construction in progress", 80.0, panel_y + 141.0, 11.5, Color::from_rgba(145, 135, 120, 200));
+            }
+        } else {
+            draw_text("Foreign Subah - Mustering & construction restricted to sovereign lands", 80.0, panel_y + 141.0, 11.5, Color::from_rgba(180, 150, 120, 200));
+        }
+
         // Buildings icons
-        draw_text("Buildings:", 15.0, panel_y + 158.0, 14.5, Color::from_rgba(180, 165, 140, 255));
-        let mut b_x = 95.0;
+        draw_text("Buildings:", 15.0, panel_y + 168.0, 13.5, Color::from_rgba(180, 165, 140, 255));
+        let mut b_x = 85.0;
         for b in &buildings {
-            draw_rectangle(b_x, panel_y + 144.0, 125.0, 24.0, Color::from_rgba(50, 42, 32, 220));
-            draw_rectangle_lines(b_x, panel_y + 144.0, 125.0, 24.0, 1.0, Color::from_rgba(160, 130, 70, 180));
-            draw_text(b.name(), b_x + 6.0, panel_y + 160.0, 13.0, Color::from_rgba(220, 205, 175, 255));
-            b_x += 133.0;
+            let badge_w = 120.0;
+            if b_x + badge_w > right_x - 20.0 {
+                break;
+            }
+            draw_rectangle(b_x, panel_y + 154.0, badge_w, 21.0, Color::from_rgba(50, 42, 32, 220));
+            draw_rectangle_lines(b_x, panel_y + 154.0, badge_w, 21.0, 1.0, Color::from_rgba(160, 130, 70, 180));
+            draw_text(b.name(), b_x + 6.0, panel_y + 169.0, 11.5, Color::from_rgba(220, 205, 175, 255));
+            b_x += badge_w + 6.0;
+        }
+        if buildings.is_empty() {
+            draw_text("None erected", 85.0, panel_y + 168.0, 11.5, Color::from_rgba(145, 135, 120, 200));
         }
 
         // Right Column: Garrison & Armies in Province
-        let right_x = screen_w - 470.0;
         draw_line(right_x - 15.0, panel_y + 10.0, right_x - 15.0, screen_h - 10.0, 1.0, Color::from_rgba(100, 80, 50, 120));
 
         if is_visible {
@@ -1013,8 +1059,8 @@ pub fn render_recruitment_modal(game: &mut GameState, ui: &mut UiState) {
         None => return,
     };
 
-    let w = 480.0;
-    let h = 340.0;
+    let w = 530.0;
+    let h = 385.0;
     let x = (screen_width() - w) / 2.0;
     let y = (screen_height() - h) / 2.0;
 
@@ -1023,7 +1069,15 @@ pub fn render_recruitment_modal(game: &mut GameState, ui: &mut UiState) {
     draw_rectangle_lines(x, y, w, h, 2.5, Color::from_rgba(220, 180, 80, 255));
 
     // Header
-    draw_text("Muster Royal Troops (Recruitment)", x + 20.0, y + 28.0, 19.0, Color::from_rgba(245, 220, 150, 255));
+    draw_text("Muster Royal Troops (Recruitment)", x + 20.0, y + 26.0, 18.0, Color::from_rgba(245, 220, 150, 255));
+    let treasury = game.factions.get(&game.player_faction).map(|f| f.treasury).unwrap_or(0);
+    draw_text(
+        &format!("Province: {} | Treasury: {}g", game.provinces[prov_idx].name, treasury),
+        x + 20.0,
+        y + 42.0,
+        12.0,
+        Color::from_rgba(210, 195, 160, 220),
+    );
 
     // Close button
     let close_btn = Rect::new(x + w - 35.0, y + 10.0, 25.0, 25.0);
@@ -1045,26 +1099,28 @@ pub fn render_recruitment_modal(game: &mut GameState, ui: &mut UiState) {
         UnitType::TopchiCannons,
     ];
 
-    let mut row_y = y + 50.0;
+    let mut row_y = y + 52.0;
     for u in units {
         let stats = u.stats();
+        let recruit_turns = u.recruit_turns();
+        let turns_str = if recruit_turns == 1 { "1 Turn" } else { "2 Turns" };
         let card_rect = Rect::new(x + 15.0, row_y, w - 30.0, 42.0);
         draw_rectangle(card_rect.x, card_rect.y, card_rect.w, card_rect.h, Color::from_rgba(40, 32, 24, 220));
         draw_rectangle_lines(card_rect.x, card_rect.y, card_rect.w, card_rect.h, 1.0, Color::from_rgba(180, 140, 70, 180));
 
-        draw_text(u.name(), card_rect.x + 10.0, card_rect.y + 18.0, 14.0, Color::from_rgba(245, 230, 180, 255));
+        draw_text(u.name(), card_rect.x + 10.0, card_rect.y + 17.0, 13.5, Color::from_rgba(245, 230, 180, 255));
         draw_text(
-            &format!("Cost: {}g | Upkeep: {}g | Soldiers: {} | Morale: {}", stats.cost, stats.upkeep, stats.base_soldiers, stats.morale),
+            &format!("Cost: {}g | Upkeep: {}g | Soldiers: {} | Morale: {} | Muster: {}", stats.cost, stats.upkeep, stats.base_soldiers, stats.morale, turns_str),
             card_rect.x + 10.0,
-            card_rect.y + 34.0,
-            11.5,
+            card_rect.y + 33.0,
+            11.0,
             Color::from_rgba(200, 190, 160, 255),
         );
 
-        let recruit_btn = Rect::new(card_rect.x + card_rect.w - 85.0, card_rect.y + 8.0, 75.0, 26.0);
+        let recruit_btn = Rect::new(card_rect.x + card_rect.w - 92.0, card_rect.y + 8.0, 84.0, 26.0);
         draw_rectangle(recruit_btn.x, recruit_btn.y, recruit_btn.w, recruit_btn.h, Color::from_rgba(50, 120, 60, 240));
         draw_rectangle_lines(recruit_btn.x, recruit_btn.y, recruit_btn.w, recruit_btn.h, 1.0, Color::from_rgba(180, 230, 140, 220));
-        draw_text("Enlist", recruit_btn.x + 18.0, recruit_btn.y + 18.0, 13.0, WHITE);
+        draw_text(&format!("Enlist ({}T)", recruit_turns), recruit_btn.x + 10.0, recruit_btn.y + 18.0, 12.0, WHITE);
 
         if is_mouse_button_pressed(MouseButton::Left) {
             let m = mouse_position();
@@ -1077,6 +1133,22 @@ pub fn render_recruitment_modal(game: &mut GameState, ui: &mut UiState) {
 
         row_y += 46.0;
     }
+
+    // Active Province Muster Queue footer
+    let q_bar_y = y + 338.0;
+    draw_line(x + 15.0, q_bar_y, x + w - 15.0, q_bar_y, 1.0, Color::from_rgba(180, 140, 70, 120));
+    draw_text("Active Province Muster Queue:", x + 15.0, q_bar_y + 22.0, 12.5, Color::from_rgba(230, 205, 140, 255));
+    let p = &game.provinces[prov_idx];
+    if p.recruitment_queue.is_empty() {
+        draw_text("No regiments currently mustering", x + 235.0, q_bar_y + 22.0, 12.0, Color::from_rgba(160, 150, 135, 200));
+    } else {
+        let mut q_str = String::new();
+        for (i, r) in p.recruitment_queue.iter().enumerate() {
+            if i > 0 { q_str.push_str(", "); }
+            q_str.push_str(&format!("{} ({}T left)", r.unit_type.name(), r.turns_remaining));
+        }
+        draw_text(&q_str, x + 235.0, q_bar_y + 22.0, 12.0, Color::from_rgba(130, 220, 150, 255));
+    }
 }
 
 pub fn render_construction_modal(game: &mut GameState, ui: &mut UiState) {
@@ -1088,15 +1160,23 @@ pub fn render_construction_modal(game: &mut GameState, ui: &mut UiState) {
         None => return,
     };
 
-    let w = 520.0;
-    let h = 470.0;
+    let w = 550.0;
+    let h = 510.0;
     let x = (screen_width() - w) / 2.0;
     let y = (screen_height() - h) / 2.0;
 
     draw_rectangle(x, y, w, h, Color::from_rgba(24, 20, 16, 250));
     draw_rectangle_lines(x, y, w, h, 2.5, Color::from_rgba(220, 180, 80, 255));
 
-    draw_text("Provincial Construction & Infrastructure", x + 20.0, y + 28.0, 19.0, Color::from_rgba(245, 220, 150, 255));
+    draw_text("Provincial Construction & Infrastructure", x + 20.0, y + 26.0, 18.0, Color::from_rgba(245, 220, 150, 255));
+    let treasury = game.factions.get(&game.player_faction).map(|f| f.treasury).unwrap_or(0);
+    draw_text(
+        &format!("Province: {} | Treasury: {}g", game.provinces[prov_idx].name, treasury),
+        x + 20.0,
+        y + 42.0,
+        12.0,
+        Color::from_rgba(210, 195, 160, 220),
+    );
 
     let close_btn = Rect::new(x + w - 35.0, y + 10.0, 25.0, 25.0);
     draw_rectangle(close_btn.x, close_btn.y, close_btn.w, close_btn.h, Color::from_rgba(160, 40, 30, 220));
@@ -1119,30 +1199,39 @@ pub fn render_construction_modal(game: &mut GameState, ui: &mut UiState) {
         BuildingType::RoadNetwork,
     ];
 
-    let mut row_y = y + 44.0;
+    let mut row_y = y + 50.0;
     for b in buildings {
-        let card_rect = Rect::new(x + 15.0, row_y, w - 30.0, 42.0);
+        let card_rect = Rect::new(x + 15.0, row_y, w - 30.0, 43.0);
         draw_rectangle(card_rect.x, card_rect.y, card_rect.w, card_rect.h, Color::from_rgba(40, 32, 24, 220));
         draw_rectangle_lines(card_rect.x, card_rect.y, card_rect.w, card_rect.h, 1.0, Color::from_rgba(180, 140, 70, 180));
 
+        let b_turns = b.build_turns();
+        let turns_str = if b_turns == 1 { "1 Turn" } else { "2 Turns" };
+
         draw_text(b.name(), card_rect.x + 10.0, card_rect.y + 16.0, 13.5, Color::from_rgba(245, 230, 180, 255));
         draw_text(
-            &format!("Cost: {}g | {}", b.cost(), b.effect_description()),
+            &format!("Cost: {}g | Build Time: {} | {}", b.cost(), turns_str, b.effect_description()),
             card_rect.x + 10.0,
-            card_rect.y + 32.0,
+            card_rect.y + 33.0,
             11.0,
             Color::from_rgba(200, 190, 160, 255),
         );
 
         let already_built = game.provinces[prov_idx].buildings.contains(&b);
-        let build_btn = Rect::new(card_rect.x + card_rect.w - 85.0, card_rect.y + 8.0, 75.0, 26.0);
+        let in_queue = game.provinces[prov_idx].construction_queue.iter().find(|c| c.building == b);
+        let build_btn = Rect::new(card_rect.x + card_rect.w - 92.0, card_rect.y + 8.0, 84.0, 26.0);
+
         if already_built {
             draw_rectangle(build_btn.x, build_btn.y, build_btn.w, build_btn.h, Color::from_rgba(60, 60, 60, 180));
-            draw_text("Built", build_btn.x + 22.0, build_btn.y + 18.0, 12.0, Color::from_rgba(170, 170, 170, 255));
+            draw_text("Built", build_btn.x + 28.0, build_btn.y + 18.0, 12.0, Color::from_rgba(170, 170, 170, 255));
+        } else if let Some(order) = in_queue {
+            draw_rectangle(build_btn.x, build_btn.y, build_btn.w, build_btn.h, Color::from_rgba(35, 75, 115, 220));
+            draw_rectangle_lines(build_btn.x, build_btn.y, build_btn.w, build_btn.h, 1.0, Color::from_rgba(120, 180, 235, 200));
+            draw_text(&format!("{}T Left", order.turns_remaining), build_btn.x + 18.0, build_btn.y + 18.0, 12.0, Color::from_rgba(220, 235, 255, 255));
         } else {
             draw_rectangle(build_btn.x, build_btn.y, build_btn.w, build_btn.h, Color::from_rgba(130, 85, 30, 240));
             draw_rectangle_lines(build_btn.x, build_btn.y, build_btn.w, build_btn.h, 1.0, Color::from_rgba(230, 190, 100, 220));
-            draw_text("Build", build_btn.x + 20.0, build_btn.y + 18.0, 13.0, WHITE);
+            draw_text(&format!("Build ({}T)", b_turns), build_btn.x + 10.0, build_btn.y + 18.0, 12.0, WHITE);
 
             if is_mouse_button_pressed(MouseButton::Left) {
                 let m = mouse_position();
@@ -1155,6 +1244,22 @@ pub fn render_construction_modal(game: &mut GameState, ui: &mut UiState) {
         }
 
         row_y += 48.0;
+    }
+
+    // Active Province Construction Queue footer
+    let q_bar_y = y + 452.0;
+    draw_line(x + 15.0, q_bar_y, x + w - 15.0, q_bar_y, 1.0, Color::from_rgba(180, 140, 70, 120));
+    draw_text("Active Construction Queue:", x + 15.0, q_bar_y + 24.0, 12.5, Color::from_rgba(230, 205, 140, 255));
+    let p = &game.provinces[prov_idx];
+    if p.construction_queue.is_empty() {
+        draw_text("No structures currently under construction", x + 215.0, q_bar_y + 24.0, 12.0, Color::from_rgba(160, 150, 135, 200));
+    } else {
+        let mut c_str = String::new();
+        for (i, c) in p.construction_queue.iter().enumerate() {
+            if i > 0 { c_str.push_str(", "); }
+            c_str.push_str(&format!("{} ({}T left)", c.building.name(), c.turns_remaining));
+        }
+        draw_text(&c_str, x + 215.0, q_bar_y + 24.0, 12.0, Color::from_rgba(240, 190, 90, 255));
     }
 }
 

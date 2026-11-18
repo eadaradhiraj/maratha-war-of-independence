@@ -209,12 +209,13 @@ fn handle_input(game: &mut GameState, ui: &mut UiState) {
         }
     }
 
+    let in_modal = ui.show_recruit_modal || ui.show_build_modal;
     let in_ui_header = mouse_screen.y <= 54.0;
     let in_ui_bottom = mouse_screen.y >= screen_height() - 225.0 && game.active_tab == ActiveTab::Map;
 
     // Mouse Wheel Zooming
     let wheel = mouse_wheel().1;
-    if wheel.abs() > 0.0001 && !in_ui_header && !in_ui_bottom {
+    if wheel.abs() > 0.0001 && !in_ui_header && !in_ui_bottom && !in_modal {
         let zoom_mult = if wheel > 0.0 { 1.15 } else { 0.87 };
         let new_zoom = (ui.camera_zoom * zoom_mult).clamp(0.35, 4.0);
         ui.camera_pos = mouse_screen - (mouse_screen - ui.camera_pos) * (new_zoom / ui.camera_zoom);
@@ -261,7 +262,7 @@ fn handle_input(game: &mut GameState, ui: &mut UiState) {
     if is_mouse_button_released(MouseButton::Right) {
         let drag_distance = (mouse_screen - ui.drag_start_mouse).length();
         // If release happened without dragging (> 8px), it is a dedicated right-click action
-        if !ui.is_dragging && drag_distance <= 8.0 && !in_ui_header && !in_ui_bottom && game.active_tab == ActiveTab::Map {
+        if !ui.is_dragging && drag_distance <= 8.0 && !in_ui_header && !in_ui_bottom && !in_modal && game.active_tab == ActiveTab::Map {
             if let Some(target_idx) = ui.hovered_province {
                 if let Some(army_idx) = game.selected_army {
                     if game.armies[army_idx].owner == game.player_faction {
@@ -302,7 +303,7 @@ fn handle_input(game: &mut GameState, ui: &mut UiState) {
 
     // Determine hovered province
     ui.hovered_province = None;
-    if !in_ui_header && !in_ui_bottom && game.active_tab == ActiveTab::Map {
+    if !in_ui_header && !in_ui_bottom && !in_modal && game.active_tab == ActiveTab::Map {
         for (idx, p) in game.provinces.iter().enumerate() {
             if point_in_polygon(mouse_world, &p.polygon) {
                 ui.hovered_province = Some(idx);
@@ -312,7 +313,7 @@ fn handle_input(game: &mut GameState, ui: &mut UiState) {
     }
 
     // Province Selection & Left-Click Movement
-    if is_mouse_button_pressed(MouseButton::Left) && !in_ui_header && !in_ui_bottom && game.active_tab == ActiveTab::Map {
+    if is_mouse_button_pressed(MouseButton::Left) && !in_ui_header && !in_ui_bottom && !in_modal && game.active_tab == ActiveTab::Map {
         if let Some(hovered) = ui.hovered_province {
             if let Some(army_idx) = game.selected_army {
                 let army = &game.armies[army_idx];

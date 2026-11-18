@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use crate::game_state::GameState;
 use crate::models::{
-    Army, BuildingType, CampaignVictoryCondition, CommodityType, FactionId, GovernmentType, Minister, RecruitOrder, Season, TaxLevel, UnitInstance,
+    Army, BuildingType, CampaignVictoryCondition, CommodityType, ConstructionOrder, FactionId, GovernmentType, Minister, RecruitOrder, Season, TaxLevel, UnitInstance,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,6 +17,8 @@ pub struct ProvinceSaveData {
     pub buildings: Vec<BuildingType>,
     pub garrison: Vec<UnitInstance>,
     pub recruitment_queue: Vec<RecruitOrder>,
+    #[serde(default)]
+    pub construction_queue: Vec<ConstructionOrder>,
     pub is_under_siege: bool,
     #[serde(default)]
     pub siege_turns_left: u32,
@@ -298,6 +300,7 @@ pub fn save_campaign_state(
             buildings: p.buildings.clone(),
             garrison: p.garrison.clone(),
             recruitment_queue: p.recruitment_queue.clone(),
+            construction_queue: p.construction_queue.clone(),
             is_under_siege: p.is_under_siege,
             siege_turns_left: p.siege_turns_left,
             is_port_blockaded: p.is_port_blockaded,

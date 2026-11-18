@@ -678,6 +678,7 @@ impl GameState {
                 p.buildings = p_save.buildings;
                 p.garrison = p_save.garrison;
                 p.recruitment_queue = p_save.recruitment_queue;
+                p.construction_queue = p_save.construction_queue;
                 p.is_under_siege = p_save.is_under_siege;
                 p.siege_turns_left = p_save.siege_turns_left;
                 p.is_port_blockaded = p_save.is_port_blockaded;
@@ -1029,9 +1030,10 @@ impl GameState {
         }
 
         if let Some(p) = self.provinces.get_mut(prov_idx) {
+            let turns = unit_type.recruit_turns();
             p.recruitment_queue.push(RecruitOrder {
                 unit_type,
-                turns_remaining: 1,
+                turns_remaining: turns,
             });
             return true;
         }
@@ -1042,6 +1044,14 @@ impl GameState {
         let cost = b_type.cost() as i32;
         let player_faction = self.player_faction;
 
+        if let Some(p) = self.provinces.get(prov_idx) {
+            if p.buildings.contains(&b_type) || p.construction_queue.iter().any(|c| c.building == b_type) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+
         if let Some(fac) = self.factions.get_mut(&player_faction) {
             if fac.treasury < cost {
                 return false;
@@ -1050,10 +1060,12 @@ impl GameState {
         }
 
         if let Some(p) = self.provinces.get_mut(prov_idx) {
-            if !p.buildings.contains(&b_type) {
-                p.buildings.push(b_type);
-                return true;
-            }
+            let turns = b_type.build_turns();
+            p.construction_queue.push(ConstructionOrder {
+                building: b_type,
+                turns_remaining: turns,
+            });
+            return true;
         }
         false
     }
@@ -1884,6 +1896,7 @@ impl GameState {
         }
 
         // 2. Process recruitment queues
+        let mut completed_player_units = Vec::new();
         for prov in self.provinces.iter_mut() {
             let mut ready_units = Vec::new();
             prov.recruitment_queue.retain_mut(|order| {
@@ -1899,7 +1912,52 @@ impl GameState {
             for u_type in ready_units {
                 let id = 10000 + (prov.garrison.len() as u64) * 100 + prov.id as u64;
                 prov.garrison.push(UnitInstance::new(id, u_type));
+                if prov.owner == self.player_faction {
+                    completed_player_units.push((u_type.name(), prov.name.clone()));
+                }
             }
+        }
+        for (u_name, p_name) in completed_player_units {
+            self.notifications.push(Notification {
+                turn: self.turn,
+                year: self.year,
+                title: "Regiment Mustered".into(),
+                message: format!("{} has assembled in {} garrison and stands ready for duty.", u_name, p_name),
+                is_urgent: false,
+            });
+        }
+
+        // 2b. Process construction queues
+        let mut completed_player_buildings = Vec::new();
+        for prov in self.provinces.iter_mut() {
+            let mut ready_buildings = Vec::new();
+            prov.construction_queue.retain_mut(|order| {
+                if order.turns_remaining <= 1 {
+                    ready_buildings.push(order.building);
+                    false
+                } else {
+                    order.turns_remaining -= 1;
+                    true
+                }
+            });
+
+            for b in ready_buildings {
+                if !prov.buildings.contains(&b) {
+                    prov.buildings.push(b);
+                    if prov.owner == self.player_faction {
+                        completed_player_buildings.push((b.name(), prov.name.clone()));
+                    }
+                }
+            }
+        }
+        for (b_name, p_name) in completed_player_buildings {
+            self.notifications.push(Notification {
+                turn: self.turn,
+                year: self.year,
+                title: "Construction Completed".into(),
+                message: format!("{} has been erected in {}.", b_name, p_name),
+                is_urgent: false,
+            });
         }
 
         // 2b. Unit Replenishment in friendly territory
@@ -2480,5 +2538,99 @@ impl GameState {
             }
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_unit_and_building_turn_durations() {
+        assert_eq!(UnitType::SepoyLineInfantry.recruit_turns(), 1);
+        assert_eq!(UnitType::BargirCavalry.recruit_turns(), 1);
+        assert_eq!(UnitType::TopchiCannons.recruit_turns(), 2);
+        assert_eq!(UnitType::SilhadarLancers.recruit_turns(), 2);
+        assert_eq!(UnitType::MansabdarGuards.recruit_turns(), 2);
+
+        assert_eq!(BuildingType::Marketplace.build_turns(), 1);
+        assert_eq!(BuildingType::TempleMosque.build_turns(), 1);
+        assert_eq!(BuildingType::TextileLoom.build_turns(), 1);
+        assert_eq!(BuildingType::RoadNetwork.build_turns(), 1);
+        assert_eq!(BuildingType::Fortress.build_turns(), 2);
+        assert_eq!(BuildingType::Barracks.build_turns(), 2);
+        assert_eq!(BuildingType::TradingPort.build_turns(), 2);
+        assert_eq!(BuildingType::CollegeOfLogic.build_turns(), 2);
+    }
+
+    #[test]
+    fn test_recruitment_multi_turn_progression() {
+        let mut game = GameState::new();
+        game.factions.get_mut(&FactionId::Maratha).unwrap().treasury = 5000;
+        let prov_idx = 4; // Satara / Bijapur
+        let initial_garrison_count = game.provinces[prov_idx].garrison.len();
+
+        // Recruit 1-turn unit (Sepoy) and 2-turn unit (TopchiCannons)
+        assert!(game.recruit_unit(prov_idx, UnitType::SepoyLineInfantry));
+        assert!(game.recruit_unit(prov_idx, UnitType::TopchiCannons));
+
+        assert_eq!(game.provinces[prov_idx].recruitment_queue.len(), 2);
+        assert_eq!(game.provinces[prov_idx].recruitment_queue[0].turns_remaining, 1);
+        assert_eq!(game.provinces[prov_idx].recruitment_queue[1].turns_remaining, 2);
+
+        // Turn 1 passes
+        game.end_turn();
+
+        // Sepoy should be ready and in garrison; TopchiCannons should now have 1 turn remaining
+        assert_eq!(game.provinces[prov_idx].garrison.len(), initial_garrison_count + 1);
+        assert_eq!(game.provinces[prov_idx].recruitment_queue.len(), 1);
+        assert_eq!(game.provinces[prov_idx].recruitment_queue[0].unit_type, UnitType::TopchiCannons);
+        assert_eq!(game.provinces[prov_idx].recruitment_queue[0].turns_remaining, 1);
+
+        // Turn 2 passes
+        game.end_turn();
+
+        // TopchiCannons is now ready and garrison has grown by 2 total
+        assert_eq!(game.provinces[prov_idx].garrison.len(), initial_garrison_count + 2);
+        assert!(game.provinces[prov_idx].recruitment_queue.is_empty());
+    }
+
+    #[test]
+    fn test_construction_multi_turn_progression() {
+        let mut game = GameState::new();
+        game.factions.get_mut(&FactionId::Maratha).unwrap().treasury = 5000;
+        let prov_idx = 4; // Satara
+
+        // Ensure Satara doesn't already have Marketplace or CollegeOfLogic
+        game.provinces[prov_idx].buildings.retain(|b| *b != BuildingType::Marketplace && *b != BuildingType::CollegeOfLogic);
+
+        // Build 1-turn Marketplace and 2-turn CollegeOfLogic
+        assert!(game.build_structure(prov_idx, BuildingType::Marketplace));
+        assert!(game.build_structure(prov_idx, BuildingType::CollegeOfLogic));
+
+        // Attempting to build again while queued must fail
+        assert!(!game.build_structure(prov_idx, BuildingType::Marketplace));
+        assert!(!game.build_structure(prov_idx, BuildingType::CollegeOfLogic));
+
+        assert_eq!(game.provinces[prov_idx].construction_queue.len(), 2);
+        assert_eq!(game.provinces[prov_idx].construction_queue[0].turns_remaining, 1);
+        assert_eq!(game.provinces[prov_idx].construction_queue[1].turns_remaining, 2);
+
+        // Turn 1 passes
+        game.end_turn();
+
+        // Marketplace finished! CollegeOfLogic has 1 turn remaining
+        assert!(game.provinces[prov_idx].buildings.contains(&BuildingType::Marketplace));
+        assert!(!game.provinces[prov_idx].buildings.contains(&BuildingType::CollegeOfLogic));
+        assert_eq!(game.provinces[prov_idx].construction_queue.len(), 1);
+        assert_eq!(game.provinces[prov_idx].construction_queue[0].building, BuildingType::CollegeOfLogic);
+        assert_eq!(game.provinces[prov_idx].construction_queue[0].turns_remaining, 1);
+
+        // Turn 2 passes
+        game.end_turn();
+
+        // CollegeOfLogic finished!
+        assert!(game.provinces[prov_idx].buildings.contains(&BuildingType::CollegeOfLogic));
+        assert!(game.provinces[prov_idx].construction_queue.is_empty());
     }
 }

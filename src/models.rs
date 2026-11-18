@@ -421,6 +421,13 @@ impl UnitType {
             _ => true,
         }
     }
+
+    pub fn recruit_turns(&self) -> u32 {
+        match self {
+            UnitType::MansabdarGuards | UnitType::SilhadarLancers | UnitType::TopchiCannons => 2,
+            _ => 1,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -531,6 +538,16 @@ impl BuildingType {
             BuildingType::RoadNetwork => "+35% Army Movement, +10% Trade Efficiency",
         }
     }
+
+    pub fn build_turns(&self) -> u32 {
+        match self {
+            BuildingType::Fortress
+            | BuildingType::Barracks
+            | BuildingType::TradingPort
+            | BuildingType::CollegeOfLogic => 2,
+            _ => 1,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -618,6 +635,12 @@ pub struct RecruitOrder {
     pub turns_remaining: u32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConstructionOrder {
+    pub building: BuildingType,
+    pub turns_remaining: u32,
+}
+
 #[derive(Debug, Clone)]
 pub struct Province {
     pub id: usize,
@@ -640,6 +663,7 @@ pub struct Province {
     pub buildings: Vec<BuildingType>,
     pub garrison: Vec<UnitInstance>,
     pub recruitment_queue: Vec<RecruitOrder>,
+    pub construction_queue: Vec<ConstructionOrder>,
     pub is_under_siege: bool,
     pub siege_turns_left: u32,
     pub besieger_army_idx: Option<usize>,
