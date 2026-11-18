@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Maratha: War of Independence (1700-1750)</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0c0a08;
+            color: #e6dfcf;
+            font-family: 'Cinzel', 'Times New Roman', Georgia, serif;
+        }
+        #glcanvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            outline: none;
+            display: block;
+        }
+        #loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #241c14 0%, #0c0a08 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: opacity 0.6s ease;
+        }
+        .title {
+            font-size: 2.2rem;
+            letter-spacing: 3px;
+            color: #e5b95c;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 15px rgba(229,185,92,0.4);
+            margin-bottom: 6px;
+            text-align: center;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            font-style: italic;
+            color: #d8c29d;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(229, 185, 92, 0.2);
+            border-top: 4px solid #e5b95c;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        .status-text {
+            font-size: 0.95rem;
+            color: #bfa882;
+            letter-spacing: 1px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="glcanvas" tabindex="1"></canvas>
+    <input type="file" id="etw_file_import" accept=".json" style="display:none;" />
+
+    <div id="loading-overlay">
+        <div class="title">MARATHA: WAR OF INDEPENDENCE</div>
+        <div class="subtitle">The Grand Campaign for India &bull; 1700 A.D. &bull; Maratha Confederacy</div>
+        <div class="spinner"></div>
+        <div id="status" class="status-text">Marshaling Royal Armies &bull; Loading WASM...</div>
+    </div>
+
+    <script src="game_engine.js"></script>
+    <script>
+        const overlay = document.getElementById("loading-overlay");
+
+        function hideLoader() {
+            if (overlay && overlay.style.display !== "none") {
+                overlay.style.opacity = "0";
+                setTimeout(() => {
+                    overlay.style.display = "none";
+                }, 400);
+            }
+        }
+
+        // Hide overlay once rendering starts
+        window.addEventListener("load", () => {
+            setTimeout(hideLoader, 600);
+        });
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                setTimeout(hideLoader, 500);
+            });
+        });
+
+        // Prevent default browser context menu on right click so right-drag & right-click work seamlessly
+        window.addEventListener("contextmenu", (e) => e.preventDefault());
+        document.addEventListener("contextmenu", (e) => e.preventDefault());
+        const glCanvas = document.getElementById("glcanvas");
+        if (glCanvas) {
+            glCanvas.addEventListener("contextmenu", (e) => e.preventDefault());
+        }
+
+        // Release any held mouse buttons on window blur / mouseup
+        const releaseButtons = () => {
+            if (typeof wasm_exports !== "undefined" && wasm_exports && wasm_exports.mouse_up) {
+                wasm_exports.mouse_up(0, 0, 0);
+                wasm_exports.mouse_up(0, 0, 1);
+                wasm_exports.mouse_up(0, 0, 2);
+            }
+        };
+        window.addEventListener("blur", releaseButtons);
+        window.addEventListener("mouseup", releaseButtons);
+        window.addEventListener("pointerup", releaseButtons);
+
+        // File Import listener
+        const fileInput = document.getElementById("etw_file_import");
+        if (fileInput) {
+            fileInput.addEventListener("change", (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const content = event.target.result;
+                        if (typeof window.__etw_set_pending_import === "function") {
+                            window.__etw_set_pending_import(content);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            });
+        }
+
+        load("game_engine.wasm");
+    </script>
+</body>
+</html>

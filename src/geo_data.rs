@@ -1,0 +1,687 @@
+use macroquad::prelude::*;
+use crate::models::{BuildingType, FactionId, Province, TaxLevel, UnitInstance, UnitType};
+
+pub fn point_in_polygon(point: Vec2, poly: &[Vec2]) -> bool {
+    let mut inside = false;
+    let n = poly.len();
+    for i in 0..n {
+        let j = (i + n - 1) % n;
+        let pi = poly[i];
+        let pj = poly[j];
+        if ((pi.y > point.y) != (pj.y > point.y))
+            && (point.x < (pj.x - pi.x) * (point.y - pi.y) / (pj.y - pi.y) + pi.x)
+        {
+            inside = !inside;
+        }
+    }
+    inside
+}
+
+pub fn create_default_provinces() -> Vec<Province> {
+    let mut provinces = Vec::new();
+
+    // 0: Afghanistan
+    provinces.push(Province {
+        id: 0,
+        name: "Afghanistan".into(),
+        capital_name: "Kabul".into(),
+        port_name: None,
+        owner: FactionId::Independent,
+        original_owner: FactionId::Independent,
+        polygon: vec![
+            Vec2::new(140.0, 80.0),
+            Vec2::new(290.0, 70.0),
+            Vec2::new(290.0, 140.0),
+            Vec2::new(250.0, 210.0),
+            Vec2::new(170.0, 200.0),
+            Vec2::new(130.0, 130.0),
+        ],
+        center: Vec2::new(210.0, 140.0),
+        capital_pos: Vec2::new(220.0, 130.0),
+        port_pos: None,
+        neighbors: vec![11, 15, 17], // Kashmir, Punjab, Sindh
+        population: 850_000,
+        base_wealth: 620,
+        tax_level: TaxLevel::Normal,
+        public_order: 3,
+        hindu_pct: 0.05,
+        muslim_pct: 0.95,
+        buildings: vec![BuildingType::Fortress],
+        garrison: vec![
+            UnitInstance::new(1, UnitType::ZamindariLevies),
+            UnitInstance::new(2, UnitType::JezailSkirmishers),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 1: Ahmadnagar
+    provinces.push(Province {
+        id: 1,
+        name: "Ahmadnagar".into(),
+        capital_name: "Ahmadnagar".into(),
+        port_name: Some("Bombay Port".into()),
+        owner: FactionId::Mughal,
+        original_owner: FactionId::Mughal,
+        polygon: vec![
+            Vec2::new(350.0, 480.0),
+            Vec2::new(450.0, 500.0),
+            Vec2::new(435.0, 545.0),
+            Vec2::new(445.0, 610.0),
+            Vec2::new(395.0, 640.0),
+            Vec2::new(330.0, 630.0),
+            Vec2::new(330.0, 540.0),
+        ],
+        center: Vec2::new(385.0, 570.0),
+        capital_pos: Vec2::new(395.0, 570.0),
+        port_pos: Some(Vec2::new(332.0, 580.0)),
+        neighbors: vec![8, 12, 3, 10, 4], // Gujarat, Malwa, Berar, Hyderabad, Bijapur
+        population: 1_250_000,
+        base_wealth: 980,
+        tax_level: TaxLevel::Normal,
+        public_order: 1,
+        hindu_pct: 0.70,
+        muslim_pct: 0.30,
+        buildings: vec![BuildingType::Marketplace, BuildingType::TradingPort],
+        garrison: vec![
+            UnitInstance::new(10, UnitType::SepoyLineInfantry),
+            UnitInstance::new(11, UnitType::ZamindariLevies),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 2: Bengal
+    provinces.push(Province {
+        id: 2,
+        name: "Bengal".into(),
+        capital_name: "Calcutta".into(),
+        port_name: Some("Hooghly Anchorage".into()),
+        owner: FactionId::Mughal,
+        original_owner: FactionId::Mughal,
+        polygon: vec![
+            Vec2::new(540.0, 210.0),
+            Vec2::new(690.0, 220.0),
+            Vec2::new(780.0, 310.0),
+            Vec2::new(740.0, 430.0),
+            Vec2::new(650.0, 430.0),
+            Vec2::new(590.0, 370.0),
+            Vec2::new(540.0, 340.0),
+        ],
+        center: Vec2::new(650.0, 330.0),
+        capital_pos: Vec2::new(665.0, 350.0),
+        port_pos: Some(Vec2::new(705.0, 410.0)),
+        neighbors: vec![9, 12, 14], // Hindustan, Malwa, Orissa
+        population: 3_800_000,
+        base_wealth: 2150,
+        tax_level: TaxLevel::Normal,
+        public_order: 4,
+        hindu_pct: 0.55,
+        muslim_pct: 0.45,
+        buildings: vec![
+            BuildingType::Barracks,
+            BuildingType::Marketplace,
+            BuildingType::TradingPort,
+        ],
+        garrison: vec![
+            UnitInstance::new(20, UnitType::SepoyLineInfantry),
+            UnitInstance::new(21, UnitType::MansabdarGuards),
+            UnitInstance::new(22, UnitType::TopchiCannons),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 3: Berar
+    provinces.push(Province {
+        id: 3,
+        name: "Berar".into(),
+        capital_name: "Nagpur".into(),
+        port_name: None,
+        owner: FactionId::Mughal,
+        original_owner: FactionId::Mughal,
+        polygon: vec![
+            Vec2::new(450.0, 500.0),
+            Vec2::new(545.0, 480.0),
+            Vec2::new(535.0, 555.0),
+            Vec2::new(515.0, 620.0),
+            Vec2::new(445.0, 610.0),
+            Vec2::new(435.0, 545.0),
+        ],
+        center: Vec2::new(485.0, 550.0),
+        capital_pos: Vec2::new(485.0, 550.0),
+        port_pos: None,
+        neighbors: vec![12, 14, 10, 1], // Malwa, Orissa, Hyderabad, Ahmadnagar
+        population: 920_000,
+        base_wealth: 780,
+        tax_level: TaxLevel::Normal,
+        public_order: 2,
+        hindu_pct: 0.80,
+        muslim_pct: 0.20,
+        buildings: vec![BuildingType::Marketplace],
+        garrison: vec![
+            UnitInstance::new(30, UnitType::ZamindariLevies),
+            UnitInstance::new(31, UnitType::HinduMatchlocks),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 4: Bijapur (Starting Maratha Capital!)
+    provinces.push(Province {
+        id: 4,
+        name: "Bijapur".into(),
+        capital_name: "Satara (Maratha Capital)".into(),
+        port_name: Some("Vijaydurg Sea Fortress".into()),
+        owner: FactionId::Maratha,
+        original_owner: FactionId::Maratha,
+        polygon: vec![
+            Vec2::new(330.0, 630.0),
+            Vec2::new(395.0, 640.0),
+            Vec2::new(455.0, 710.0),
+            Vec2::new(430.0, 780.0),
+            Vec2::new(370.0, 780.0),
+            Vec2::new(350.0, 730.0),
+            Vec2::new(330.0, 700.0),
+        ],
+        center: Vec2::new(385.0, 705.0),
+        capital_pos: Vec2::new(385.0, 695.0),
+        port_pos: Some(Vec2::new(335.0, 675.0)),
+        neighbors: vec![1, 10, 7, 13, 5], // Ahmadnagar, Hyderabad, Goa, Mysore, Carnatica
+        population: 1_650_000,
+        base_wealth: 1350,
+        tax_level: TaxLevel::Normal,
+        public_order: 7,
+        hindu_pct: 0.85,
+        muslim_pct: 0.15,
+        buildings: vec![
+            BuildingType::Fortress,
+            BuildingType::Barracks,
+            BuildingType::TempleMosque,
+        ],
+        garrison: vec![
+            UnitInstance::new(40, UnitType::BargirCavalry),
+            UnitInstance::new(41, UnitType::HinduMatchlocks),
+            UnitInstance::new(42, UnitType::SepoyLineInfantry),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 5: Carnatica (Starting Maratha second province!)
+    provinces.push(Province {
+        id: 5,
+        name: "Carnatica".into(),
+        capital_name: "Arcot".into(),
+        port_name: Some("Madras Roadstead".into()),
+        owner: FactionId::Maratha,
+        original_owner: FactionId::Maratha,
+        polygon: vec![
+            Vec2::new(455.0, 710.0),
+            Vec2::new(515.0, 740.0),
+            Vec2::new(585.0, 710.0),
+            Vec2::new(555.0, 840.0),
+            Vec2::new(490.0, 920.0),
+            Vec2::new(450.0, 920.0),
+            Vec2::new(400.0, 890.0),
+            Vec2::new(445.0, 840.0),
+            Vec2::new(430.0, 780.0),
+        ],
+        center: Vec2::new(490.0, 810.0),
+        capital_pos: Vec2::new(480.0, 810.0),
+        port_pos: Some(Vec2::new(535.0, 800.0)),
+        neighbors: vec![10, 4, 13, 6], // Hyderabad, Bijapur, Mysore, Ceylon
+        population: 1_850_000,
+        base_wealth: 1420,
+        tax_level: TaxLevel::Normal,
+        public_order: 5,
+        hindu_pct: 0.82,
+        muslim_pct: 0.18,
+        buildings: vec![
+            BuildingType::Barracks,
+            BuildingType::TradingPort,
+            BuildingType::Marketplace,
+        ],
+        garrison: vec![
+            UnitInstance::new(50, UnitType::HinduMatchlocks),
+            UnitInstance::new(51, UnitType::BargirCavalry),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 6: Ceylon
+    provinces.push(Province {
+        id: 6,
+        name: "Ceylon".into(),
+        capital_name: "Trincomalee".into(),
+        port_name: Some("Colombo Harbor".into()),
+        owner: FactionId::Independent,
+        original_owner: FactionId::Independent,
+        polygon: vec![
+            Vec2::new(500.0, 930.0),
+            Vec2::new(540.0, 920.0),
+            Vec2::new(565.0, 955.0),
+            Vec2::new(550.0, 1005.0),
+            Vec2::new(510.0, 1000.0),
+            Vec2::new(490.0, 960.0),
+        ],
+        center: Vec2::new(525.0, 965.0),
+        capital_pos: Vec2::new(530.0, 960.0),
+        port_pos: Some(Vec2::new(505.0, 985.0)),
+        neighbors: vec![5], // Carnatica
+        population: 480_000,
+        base_wealth: 890,
+        tax_level: TaxLevel::Normal,
+        public_order: 4,
+        hindu_pct: 0.25,
+        muslim_pct: 0.15,
+        buildings: vec![BuildingType::TradingPort],
+        garrison: vec![UnitInstance::new(60, UnitType::ZamindariLevies)],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 7: Goa
+    provinces.push(Province {
+        id: 7,
+        name: "Goa".into(),
+        capital_name: "Goa Velha".into(),
+        port_name: Some("Porto de Mormugao".into()),
+        owner: FactionId::Portugal,
+        original_owner: FactionId::Portugal,
+        polygon: vec![
+            Vec2::new(330.0, 700.0),
+            Vec2::new(350.0, 730.0),
+            Vec2::new(350.0, 765.0),
+            Vec2::new(320.0, 765.0),
+            Vec2::new(315.0, 715.0),
+        ],
+        center: Vec2::new(335.0, 735.0),
+        capital_pos: Vec2::new(335.0, 735.0),
+        port_pos: Some(Vec2::new(320.0, 740.0)),
+        neighbors: vec![4, 13], // Bijapur, Mysore
+        population: 260_000,
+        base_wealth: 950,
+        tax_level: TaxLevel::Normal,
+        public_order: 6,
+        hindu_pct: 0.50,
+        muslim_pct: 0.10,
+        buildings: vec![BuildingType::Fortress, BuildingType::TradingPort],
+        garrison: vec![
+            UnitInstance::new(70, UnitType::SepoyLineInfantry),
+            UnitInstance::new(71, UnitType::TopchiCannons),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 8: Gujarat
+    provinces.push(Province {
+        id: 8,
+        name: "Gujarat".into(),
+        capital_name: "Ahmedabad".into(),
+        port_name: Some("Surat Bunder".into()),
+        owner: FactionId::Mughal,
+        original_owner: FactionId::Mughal,
+        polygon: vec![
+            Vec2::new(220.0, 420.0),
+            Vec2::new(280.0, 360.0),
+            Vec2::new(300.0, 430.0),
+            Vec2::new(355.0, 460.0),
+            Vec2::new(330.0, 540.0),
+            Vec2::new(260.0, 540.0),
+            Vec2::new(210.0, 490.0),
+        ],
+        center: Vec2::new(275.0, 475.0),
+        capital_pos: Vec2::new(285.0, 475.0),
+        port_pos: Some(Vec2::new(245.0, 515.0)),
+        neighbors: vec![17, 16, 12, 1], // Sindh, Rajpootana, Malwa, Ahmadnagar
+        population: 2_100_000,
+        base_wealth: 1750,
+        tax_level: TaxLevel::Normal,
+        public_order: 3,
+        hindu_pct: 0.65,
+        muslim_pct: 0.35,
+        buildings: vec![
+            BuildingType::TradingPort,
+            BuildingType::Marketplace,
+            BuildingType::Barracks,
+        ],
+        garrison: vec![
+            UnitInstance::new(80, UnitType::SepoyLineInfantry),
+            UnitInstance::new(81, UnitType::ZamindariLevies),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 9: Hindustan (Imperial Delhi / Akbarabad)
+    provinces.push(Province {
+        id: 9,
+        name: "Hindustan".into(),
+        capital_name: "Akbarabad / Delhi".into(),
+        port_name: None,
+        owner: FactionId::Mughal,
+        original_owner: FactionId::Mughal,
+        polygon: vec![
+            Vec2::new(430.0, 150.0),
+            Vec2::new(540.0, 210.0),
+            Vec2::new(605.0, 270.0),
+            Vec2::new(540.0, 340.0),
+            Vec2::new(440.0, 330.0),
+            Vec2::new(410.0, 320.0),
+            Vec2::new(370.0, 270.0),
+            Vec2::new(435.0, 230.0),
+        ],
+        center: Vec2::new(475.0, 260.0),
+        capital_pos: Vec2::new(475.0, 260.0),
+        port_pos: None,
+        neighbors: vec![15, 16, 12, 2], // Punjab, Rajpootana, Malwa, Bengal
+        population: 4_200_000,
+        base_wealth: 2600,
+        tax_level: TaxLevel::Normal,
+        public_order: 5,
+        hindu_pct: 0.60,
+        muslim_pct: 0.40,
+        buildings: vec![
+            BuildingType::Fortress,
+            BuildingType::Barracks,
+            BuildingType::Marketplace,
+            BuildingType::TempleMosque,
+        ],
+        garrison: vec![
+            UnitInstance::new(90, UnitType::MansabdarGuards),
+            UnitInstance::new(91, UnitType::SepoyLineInfantry),
+            UnitInstance::new(92, UnitType::TopchiCannons),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 10: Hyderabad
+    provinces.push(Province {
+        id: 10,
+        name: "Hyderabad".into(),
+        capital_name: "Hyderabad".into(),
+        port_name: Some("Masulipatnam Port".into()),
+        owner: FactionId::Mughal,
+        original_owner: FactionId::Mughal,
+        polygon: vec![
+            Vec2::new(445.0, 610.0),
+            Vec2::new(515.0, 620.0),
+            Vec2::new(535.0, 555.0),
+            Vec2::new(595.0, 600.0),
+            Vec2::new(585.0, 710.0),
+            Vec2::new(515.0, 740.0),
+            Vec2::new(455.0, 710.0),
+            Vec2::new(395.0, 640.0),
+        ],
+        center: Vec2::new(495.0, 665.0),
+        capital_pos: Vec2::new(495.0, 665.0),
+        port_pos: Some(Vec2::new(565.0, 680.0)),
+        neighbors: vec![3, 14, 1, 4, 5], // Berar, Orissa, Ahmadnagar, Bijapur, Carnatica
+        population: 2_400_000,
+        base_wealth: 1650,
+        tax_level: TaxLevel::Normal,
+        public_order: 3,
+        hindu_pct: 0.75,
+        muslim_pct: 0.25,
+        buildings: vec![
+            BuildingType::Fortress,
+            BuildingType::Marketplace,
+            BuildingType::TradingPort,
+        ],
+        garrison: vec![
+            UnitInstance::new(100, UnitType::SepoyLineInfantry),
+            UnitInstance::new(101, UnitType::HinduMatchlocks),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 11: Kashmir
+    provinces.push(Province {
+        id: 11,
+        name: "Kashmir".into(),
+        capital_name: "Srinagar".into(),
+        port_name: None,
+        owner: FactionId::Independent,
+        original_owner: FactionId::Independent,
+        polygon: vec![
+            Vec2::new(290.0, 70.0),
+            Vec2::new(395.0, 50.0),
+            Vec2::new(450.0, 90.0),
+            Vec2::new(430.0, 150.0),
+            Vec2::new(360.0, 160.0),
+            Vec2::new(310.0, 120.0),
+        ],
+        center: Vec2::new(370.0, 110.0),
+        capital_pos: Vec2::new(370.0, 110.0),
+        port_pos: None,
+        neighbors: vec![0, 15], // Afghanistan, Punjab
+        population: 750_000,
+        base_wealth: 610,
+        tax_level: TaxLevel::Normal,
+        public_order: 4,
+        hindu_pct: 0.35,
+        muslim_pct: 0.65,
+        buildings: vec![BuildingType::Marketplace],
+        garrison: vec![UnitInstance::new(110, UnitType::ZamindariLevies)],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 12: Malwa
+    provinces.push(Province {
+        id: 12,
+        name: "Malwa".into(),
+        capital_name: "Ujjain".into(),
+        port_name: None,
+        owner: FactionId::Mughal,
+        original_owner: FactionId::Mughal,
+        polygon: vec![
+            Vec2::new(380.0, 420.0),
+            Vec2::new(440.0, 330.0),
+            Vec2::new(540.0, 340.0),
+            Vec2::new(590.0, 370.0),
+            Vec2::new(545.0, 480.0),
+            Vec2::new(450.0, 500.0),
+            Vec2::new(355.0, 460.0),
+            Vec2::new(300.0, 430.0),
+        ],
+        center: Vec2::new(440.0, 430.0),
+        capital_pos: Vec2::new(440.0, 430.0),
+        port_pos: None,
+        neighbors: vec![16, 9, 2, 14, 3, 1, 8], // Rajpootana, Hindustan, Bengal, Orissa, Berar, Ahmadnagar, Gujarat
+        population: 1_900_000,
+        base_wealth: 1380,
+        tax_level: TaxLevel::Normal,
+        public_order: 2,
+        hindu_pct: 0.85,
+        muslim_pct: 0.15,
+        buildings: vec![BuildingType::Barracks, BuildingType::Marketplace],
+        garrison: vec![
+            UnitInstance::new(120, UnitType::SepoyLineInfantry),
+            UnitInstance::new(121, UnitType::HinduMatchlocks),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 13: Mysore
+    provinces.push(Province {
+        id: 13,
+        name: "Mysore".into(),
+        capital_name: "Mysore".into(),
+        port_name: Some("Mangalore Port".into()),
+        owner: FactionId::Mysore,
+        original_owner: FactionId::Mysore,
+        polygon: vec![
+            Vec2::new(350.0, 765.0),
+            Vec2::new(370.0, 780.0),
+            Vec2::new(430.0, 780.0),
+            Vec2::new(445.0, 840.0),
+            Vec2::new(400.0, 890.0),
+            Vec2::new(350.0, 870.0),
+            Vec2::new(335.0, 800.0),
+        ],
+        center: Vec2::new(390.0, 830.0),
+        capital_pos: Vec2::new(390.0, 830.0),
+        port_pos: Some(Vec2::new(345.0, 840.0)),
+        neighbors: vec![4, 7, 5], // Bijapur, Goa, Carnatica
+        population: 1_400_000,
+        base_wealth: 1100,
+        tax_level: TaxLevel::Normal,
+        public_order: 6,
+        hindu_pct: 0.70,
+        muslim_pct: 0.30,
+        buildings: vec![BuildingType::Fortress, BuildingType::Barracks],
+        garrison: vec![
+            UnitInstance::new(130, UnitType::SepoyLineInfantry),
+            UnitInstance::new(131, UnitType::TopchiCannons),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 14: Orissa & Circars
+    provinces.push(Province {
+        id: 14,
+        name: "Orissa & Circars".into(),
+        capital_name: "Cuttack".into(),
+        port_name: Some("Puri Roadstead".into()),
+        owner: FactionId::Mughal,
+        original_owner: FactionId::Mughal,
+        polygon: vec![
+            Vec2::new(590.0, 370.0),
+            Vec2::new(650.0, 430.0),
+            Vec2::new(740.0, 430.0),
+            Vec2::new(680.0, 560.0),
+            Vec2::new(595.0, 600.0),
+            Vec2::new(535.0, 555.0),
+            Vec2::new(545.0, 480.0),
+        ],
+        center: Vec2::new(620.0, 490.0),
+        capital_pos: Vec2::new(620.0, 500.0),
+        port_pos: Some(Vec2::new(665.0, 530.0)),
+        neighbors: vec![2, 12, 3, 10], // Bengal, Malwa, Berar, Hyderabad
+        population: 1_350_000,
+        base_wealth: 1050,
+        tax_level: TaxLevel::Normal,
+        public_order: 3,
+        hindu_pct: 0.90,
+        muslim_pct: 0.10,
+        buildings: vec![BuildingType::TradingPort, BuildingType::Marketplace],
+        garrison: vec![UnitInstance::new(140, UnitType::ZamindariLevies)],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 15: Punjab
+    provinces.push(Province {
+        id: 15,
+        name: "Punjab".into(),
+        capital_name: "Lahore".into(),
+        port_name: None,
+        owner: FactionId::Mughal,
+        original_owner: FactionId::Mughal,
+        polygon: vec![
+            Vec2::new(310.0, 120.0),
+            Vec2::new(360.0, 160.0),
+            Vec2::new(430.0, 150.0),
+            Vec2::new(435.0, 230.0),
+            Vec2::new(370.0, 270.0),
+            Vec2::new(290.0, 250.0),
+            Vec2::new(250.0, 210.0),
+            Vec2::new(290.0, 140.0),
+        ],
+        center: Vec2::new(340.0, 205.0),
+        capital_pos: Vec2::new(340.0, 205.0),
+        port_pos: None,
+        neighbors: vec![11, 0, 17, 16, 9], // Kashmir, Afghanistan, Sindh, Rajpootana, Hindustan
+        population: 2_600_000,
+        base_wealth: 1850,
+        tax_level: TaxLevel::Normal,
+        public_order: 3,
+        hindu_pct: 0.40,
+        muslim_pct: 0.45,
+        buildings: vec![BuildingType::Barracks, BuildingType::Marketplace],
+        garrison: vec![
+            UnitInstance::new(150, UnitType::SepoyLineInfantry),
+            UnitInstance::new(151, UnitType::MansabdarGuards),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 16: Rajpootana
+    provinces.push(Province {
+        id: 16,
+        name: "Rajpootana".into(),
+        capital_name: "Udaipur / Jaipur".into(),
+        port_name: None,
+        owner: FactionId::Mughal,
+        original_owner: FactionId::Mughal,
+        polygon: vec![
+            Vec2::new(290.0, 250.0),
+            Vec2::new(370.0, 270.0),
+            Vec2::new(410.0, 320.0),
+            Vec2::new(380.0, 420.0),
+            Vec2::new(300.0, 430.0),
+            Vec2::new(280.0, 360.0),
+        ],
+        center: Vec2::new(340.0, 345.0),
+        capital_pos: Vec2::new(340.0, 345.0),
+        port_pos: None,
+        neighbors: vec![15, 17, 8, 12, 9], // Punjab, Sindh, Gujarat, Malwa, Hindustan
+        population: 1_500_000,
+        base_wealth: 1100,
+        tax_level: TaxLevel::Normal,
+        public_order: 2,
+        hindu_pct: 0.90,
+        muslim_pct: 0.10,
+        buildings: vec![BuildingType::Fortress],
+        garrison: vec![
+            UnitInstance::new(160, UnitType::HinduMatchlocks),
+            UnitInstance::new(161, UnitType::ZamindariLevies),
+        ],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    // 17: Sindh
+    provinces.push(Province {
+        id: 17,
+        name: "Sindh".into(),
+        capital_name: "Neroon Kot".into(),
+        port_name: Some("Thatta / Karachi Anchorage".into()),
+        owner: FactionId::Mughal,
+        original_owner: FactionId::Mughal,
+        polygon: vec![
+            Vec2::new(170.0, 200.0),
+            Vec2::new(250.0, 210.0),
+            Vec2::new(290.0, 250.0),
+            Vec2::new(280.0, 360.0),
+            Vec2::new(220.0, 420.0),
+            Vec2::new(170.0, 380.0),
+            Vec2::new(150.0, 290.0),
+        ],
+        center: Vec2::new(220.0, 310.0),
+        capital_pos: Vec2::new(220.0, 310.0),
+        port_pos: Some(Vec2::new(180.0, 390.0)),
+        neighbors: vec![0, 15, 16, 8], // Afghanistan, Punjab, Rajpootana, Gujarat
+        population: 1_100_000,
+        base_wealth: 920,
+        tax_level: TaxLevel::Normal,
+        public_order: 3,
+        hindu_pct: 0.20,
+        muslim_pct: 0.80,
+        buildings: vec![BuildingType::TradingPort],
+        garrison: vec![UnitInstance::new(170, UnitType::ZamindariLevies)],
+        recruitment_queue: Vec::new(),
+        is_under_siege: false,
+    });
+
+    provinces
+}
