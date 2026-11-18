@@ -70,6 +70,41 @@ pub enum DiploAction {
     OfferTerritory(usize),
     SubjugateVassal,
     GrantMilitaryAccess,
+    ShareTechnology,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum GovernmentType {
+    #[default]
+    AbsoluteMonarchy,
+    ConstitutionalMonarchy,
+    Republic,
+}
+
+impl GovernmentType {
+    pub fn name(&self) -> &'static str {
+        match self {
+            GovernmentType::AbsoluteMonarchy => "Absolute Monarchy",
+            GovernmentType::ConstitutionalMonarchy => "Constitutional Durbar",
+            GovernmentType::Republic => "Swarajya Commonwealth",
+        }
+    }
+
+    pub fn bonus_desc(&self) -> &'static str {
+        match self {
+            GovernmentType::AbsoluteMonarchy => "+2 Garrison Repression | -5% Town Growth | Monarch Rules Indefinitely",
+            GovernmentType::ConstitutionalMonarchy => "+1 Garrison Repression | +10% Bilateral Trade Yield | Balanced Stability",
+            GovernmentType::Republic => "+20% Town Wealth Growth | +15% Research Breakthroughs | -2 Commoner Repression",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum CampaignVictoryCondition {
+    #[default]
+    ShortCampaign,
+    LongCampaign,
+    PrestigeVictory,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -144,6 +179,7 @@ pub enum CovertAction {
     Infiltrate,
     SabotageInfrastructure,
     AssassinateGeneral,
+    StealTechnology,
 }
 
 impl CovertAction {
@@ -152,6 +188,7 @@ impl CovertAction {
             CovertAction::Infiltrate => "Infiltrate Subah (Lift Fog 4 Turns)",
             CovertAction::SabotageInfrastructure => "Sabotage Infrastructure (Disable 3 Turns)",
             CovertAction::AssassinateGeneral => "Assassinate Enemy Commander",
+            CovertAction::StealTechnology => "Steal Technology Blueprints",
         }
     }
 
@@ -160,6 +197,7 @@ impl CovertAction {
             CovertAction::Infiltrate => 250,
             CovertAction::SabotageInfrastructure => 400,
             CovertAction::AssassinateGeneral => 650,
+            CovertAction::StealTechnology => 500,
         }
     }
 }

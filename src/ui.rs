@@ -1,7 +1,7 @@
 use macroquad::prelude::*;
 use crate::game_state::{ActiveTab, GameState};
 use crate::models::{
-    BuildingType, CampaignStance, CovertAction, DiploAction, FactionId, TaxLevel, UnitType,
+    BuildingType, CampaignStance, CovertAction, DiploAction, FactionId, GovernmentType, MinisterRole, TaxLevel, UnitType,
 };
 use std::sync::OnceLock;
 
@@ -503,7 +503,7 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
                         }
                     }
                 } else if target_p.besieger_army_idx == Some(army_idx) {
-                    let lift_btn = Rect::new(screen_w - 655.0, ribbon_y + 4.0, 172.0, 24.0);
+                    let lift_btn = Rect::new(screen_w - 655.0, ribbon_y + 4.0, 130.0, 24.0);
                     let lift_hov = lift_btn.contains(m_vec);
                     draw_rectangle(
                         lift_btn.x,
@@ -516,6 +516,25 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
                     draw_text(&format!("Lift Siege ({})", target_p.name), lift_btn.x + 8.0, lift_btn.y + 16.5, 12.0, WHITE);
                     if is_mouse_button_pressed(MouseButton::Left) && lift_hov {
                         match game.lift_siege(siege_target_idx) {
+                            Ok(msg) => ui.set_toast(&msg),
+                            Err(err) => ui.set_toast(&err),
+                        }
+                    }
+
+                    // Sapper Wall Breach Button
+                    let sapper_btn = Rect::new(screen_w - 800.0, ribbon_y + 4.0, 138.0, 24.0);
+                    let sapper_hov = sapper_btn.contains(m_vec);
+                    draw_rectangle(
+                        sapper_btn.x,
+                        sapper_btn.y,
+                        sapper_btn.w,
+                        sapper_btn.h,
+                        if sapper_hov { Color::from_rgba(180, 70, 20, 240) } else { Color::from_rgba(125, 45, 15, 220) },
+                    );
+                    draw_rectangle_lines(sapper_btn.x, sapper_btn.y, sapper_btn.w, sapper_btn.h, 1.2, Color::from_rgba(255, 180, 60, 220));
+                    draw_text("💥 Sapper Breach", sapper_btn.x + 8.0, sapper_btn.y + 16.5, 12.0, WHITE);
+                    if is_mouse_button_pressed(MouseButton::Left) && sapper_hov {
+                        match game.sapper_assault(siege_target_idx) {
                             Ok(msg) => ui.set_toast(&msg),
                             Err(err) => ui.set_toast(&err),
                         }
@@ -713,21 +732,26 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
             }
         } else {
             // Foreign Subah: Covert Operations Buttons
-            let inf_btn = Rect::new(15.0, panel_y + 106.0, 145.0, 30.0);
-            let sab_btn = Rect::new(165.0, panel_y + 106.0, 145.0, 30.0);
-            let ass_btn = Rect::new(315.0, panel_y + 106.0, 160.0, 30.0);
+            let inf_btn = Rect::new(15.0, panel_y + 106.0, 115.0, 30.0);
+            let sab_btn = Rect::new(135.0, panel_y + 106.0, 115.0, 30.0);
+            let ass_btn = Rect::new(255.0, panel_y + 106.0, 130.0, 30.0);
+            let steal_btn = Rect::new(390.0, panel_y + 106.0, 130.0, 30.0);
 
             draw_rectangle(inf_btn.x, inf_btn.y, inf_btn.w, inf_btn.h, Color::from_rgba(50, 70, 95, 230));
             draw_rectangle_lines(inf_btn.x, inf_btn.y, inf_btn.w, inf_btn.h, 1.0, Color::from_rgba(150, 200, 240, 200));
-            draw_text("🕵 Infiltrate (250g)", inf_btn.x + 8.0, inf_btn.y + 20.0, 13.0, WHITE);
+            draw_text("🕵 Infiltrate", inf_btn.x + 8.0, inf_btn.y + 20.0, 12.0, WHITE);
 
             draw_rectangle(sab_btn.x, sab_btn.y, sab_btn.w, sab_btn.h, Color::from_rgba(95, 55, 30, 230));
             draw_rectangle_lines(sab_btn.x, sab_btn.y, sab_btn.w, sab_btn.h, 1.0, Color::from_rgba(240, 160, 90, 200));
-            draw_text("💣 Sabotage (400g)", sab_btn.x + 8.0, sab_btn.y + 20.0, 13.0, WHITE);
+            draw_text("💣 Sabotage", sab_btn.x + 8.0, sab_btn.y + 20.0, 12.0, WHITE);
 
             draw_rectangle(ass_btn.x, ass_btn.y, ass_btn.w, ass_btn.h, Color::from_rgba(110, 30, 35, 230));
             draw_rectangle_lines(ass_btn.x, ass_btn.y, ass_btn.w, ass_btn.h, 1.0, Color::from_rgba(250, 120, 130, 200));
-            draw_text("🎯 Assassinate (650g)", ass_btn.x + 8.0, ass_btn.y + 20.0, 13.0, WHITE);
+            draw_text("🎯 Assassinate", ass_btn.x + 8.0, ass_btn.y + 20.0, 12.0, WHITE);
+
+            draw_rectangle(steal_btn.x, steal_btn.y, steal_btn.w, steal_btn.h, Color::from_rgba(65, 45, 95, 230));
+            draw_rectangle_lines(steal_btn.x, steal_btn.y, steal_btn.w, steal_btn.h, 1.0, Color::from_rgba(190, 150, 240, 200));
+            draw_text("📜 Steal Tech", steal_btn.x + 8.0, steal_btn.y + 20.0, 12.0, WHITE);
 
             if is_mouse_button_pressed(MouseButton::Left) {
                 if inf_btn.contains(m_pos) {
@@ -745,13 +769,18 @@ pub fn render_bottom_panel(game: &mut GameState, ui: &mut UiState) {
                         Ok(msg) => ui.set_toast(&msg),
                         Err(e) => ui.set_toast(&e),
                     }
+                } else if steal_btn.contains(m_pos) {
+                    match game.dispatch_covert_mission(prov_idx, CovertAction::StealTechnology) {
+                        Ok(msg) => ui.set_toast(&msg),
+                        Err(e) => ui.set_toast(&e),
+                    }
                 }
             }
         }
 
         // Coastal Harbor Blockade Toggle Button
         if has_port {
-            let port_btn = Rect::new(490.0, panel_y + 106.0, 130.0, 30.0);
+            let port_btn = Rect::new(525.0, panel_y + 106.0, 125.0, 30.0);
             let port_bg = if is_blockaded { Color::from_rgba(150, 40, 30, 230) } else { Color::from_rgba(40, 75, 95, 220) };
             draw_rectangle(port_btn.x, port_btn.y, port_btn.w, port_btn.h, port_bg);
             draw_rectangle_lines(port_btn.x, port_btn.y, port_btn.w, port_btn.h, 1.0, Color::from_rgba(180, 210, 230, 200));
@@ -1129,60 +1158,125 @@ pub fn render_construction_modal(game: &mut GameState, ui: &mut UiState) {
     }
 }
 
-pub fn render_government_view(game: &mut GameState) {
+pub fn render_government_view(game: &mut GameState, ui: &mut UiState) {
     let screen_w = screen_width();
     let screen_h = screen_height();
 
-    draw_rectangle(30.0, 60.0, screen_w - 60.0, screen_h - 90.0, Color::from_rgba(20, 16, 12, 248));
-    draw_rectangle_lines(30.0, 60.0, screen_w - 60.0, screen_h - 90.0, 2.0, Color::from_rgba(220, 180, 80, 255));
+    draw_rectangle(30.0, 56.0, screen_w - 60.0, screen_h - 70.0, Color::from_rgba(20, 16, 12, 252));
+    draw_rectangle_lines(30.0, 56.0, screen_w - 60.0, screen_h - 70.0, 2.0, Color::from_rgba(220, 180, 80, 255));
 
-    draw_text(
-        "Grand Council of Ministers | Hindavi Swarajya Cabinet",
+    let player_fac = game.factions.get(&game.player_faction).unwrap().clone();
+
+    // Title & Government Structure
+    draw_text_bold(
+        "Grand Council of Ministers | Imperial Cabinet & Constitution",
         50.0,
-        95.0,
-        22.0,
+        84.0,
+        21.0,
         Color::from_rgba(245, 225, 160, 255),
     );
+
+    let gov_str = format!("Structure: {} [{}]", player_fac.government.name(), player_fac.government.bonus_desc());
     draw_text(
-        "Government Type: Absolute Monarchy (Chhatrapati / Regency) | Succession: Royal Bhosale Dynasty",
+        &gov_str,
         50.0,
-        120.0,
-        14.0,
-        Color::from_rgba(210, 195, 160, 255),
+        104.0,
+        12.0,
+        Color::from_rgba(220, 205, 165, 255),
     );
 
-    let player_fac = game.factions.get(&game.player_faction).unwrap();
-    let mut card_y = 145.0;
+    // Reform Government Button
+    let reform_btn = Rect::new(screen_w - 230.0, 66.0, 175.0, 26.0);
+    let m = mouse_position();
+    let m_vec = Vec2::new(m.0, m.1);
+    let ref_hov = reform_btn.contains(m_vec);
+    draw_rectangle(reform_btn.x, reform_btn.y, reform_btn.w, reform_btn.h, if ref_hov { Color::from_rgba(140, 80, 30, 240) } else { Color::from_rgba(85, 45, 20, 220) });
+    draw_rectangle_lines(reform_btn.x, reform_btn.y, reform_btn.w, reform_btn.h, 1.2, Color::from_rgba(245, 200, 90, 255));
+    draw_text("⚖ Enact Reform (600g)", reform_btn.x + 10.0, reform_btn.y + 17.5, 12.0, WHITE);
 
-    for m in &player_fac.ministers {
-        let card_rect = Rect::new(50.0, card_y, screen_w - 100.0, 65.0);
+    if is_mouse_button_pressed(MouseButton::Left) && ref_hov {
+        let next_gov = match player_fac.government {
+            GovernmentType::AbsoluteMonarchy => GovernmentType::ConstitutionalMonarchy,
+            GovernmentType::ConstitutionalMonarchy => GovernmentType::Republic,
+            GovernmentType::Republic => GovernmentType::AbsoluteMonarchy,
+        };
+        match game.reform_government(next_gov) {
+            Ok(msg) => ui.set_toast(&msg),
+            Err(err) => ui.set_toast(&err),
+        }
+    }
+
+    // Campaign Objectives Progress Ribbon
+    let (owned, holds_delhi, holds_satara, rank) = game.campaign_progress();
+    let obj_y = 114.0;
+    let obj_rect = Rect::new(50.0, obj_y, screen_w - 100.0, 22.0);
+    draw_rectangle(obj_rect.x, obj_rect.y, obj_rect.w, obj_rect.h, Color::from_rgba(35, 30, 22, 220));
+    draw_rectangle_lines(obj_rect.x, obj_rect.y, obj_rect.w, obj_rect.h, 1.0, Color::from_rgba(180, 145, 75, 180));
+    let delhi_str = if holds_delhi { "[Del: HELD]" } else { "[Del: HOSTILE]" };
+    let satara_str = if holds_satara { "[Satara: SECURED]" } else { "[Satara: LOST]" };
+    draw_text(
+        &format!("Objectives: Subahs Held: {} / 14 | {} | {} | Sovereign Prestige: Rank #{}", owned, delhi_str, satara_str, rank),
+        obj_rect.x + 10.0,
+        obj_rect.y + 15.0,
+        11.5,
+        Color::from_rgba(240, 220, 140, 255),
+    );
+
+    let mut card_y = 142.0;
+    let card_h = 44.0;
+
+    for m_inst in &player_fac.ministers {
+        let card_rect = Rect::new(50.0, card_y, screen_w - 100.0, card_h);
         draw_rectangle(card_rect.x, card_rect.y, card_rect.w, card_rect.h, Color::from_rgba(35, 28, 22, 230));
         draw_rectangle_lines(card_rect.x, card_rect.y, card_rect.w, card_rect.h, 1.0, Color::from_rgba(180, 140, 70, 160));
 
-        let stars_str = "★".repeat(m.stars as usize);
-        draw_text(
-            &format!("{}: {}", m.role.title(), m.name),
-            card_rect.x + 15.0,
-            card_rect.y + 24.0,
-            16.0,
-            Color::from_rgba(240, 220, 170, 255),
+        let stars_str = "*".repeat(m_inst.stars as usize);
+        draw_text_bold(
+            &format!("{}: {}", m_inst.role.title(), m_inst.name),
+            card_rect.x + 10.0,
+            card_rect.y + 18.0,
+            13.5,
+            Color::from_rgba(245, 230, 175, 255),
         );
         draw_text(
-            &format!("Ability Rating: {} | Loyalty: {}/10", stars_str, m.loyalty),
-            card_rect.x + 15.0,
-            card_rect.y + 44.0,
-            13.0,
-            Color::from_rgba(225, 195, 80, 255),
-        );
-        draw_text(
-            &format!("Minister Trait: {}", m.trait_desc),
-            card_rect.x + 350.0,
+            &format!("Ability: [{}] | Loyalty: {}/10 | Trait: {}", stars_str, m_inst.loyalty, m_inst.trait_desc),
+            card_rect.x + 10.0,
             card_rect.y + 34.0,
-            13.0,
-            Color::from_rgba(190, 215, 170, 255),
+            11.0,
+            Color::from_rgba(210, 195, 150, 255),
         );
 
-        card_y += 75.0;
+        if m_inst.role != MinisterRole::HeadOfState {
+            let dismiss_btn = Rect::new(card_rect.x + card_rect.w - 165.0, card_rect.y + 8.0, 155.0, 26.0);
+            let dis_hov = dismiss_btn.contains(m_vec);
+            draw_rectangle(dismiss_btn.x, dismiss_btn.y, dismiss_btn.w, dismiss_btn.h, if dis_hov { Color::from_rgba(140, 45, 30, 230) } else { Color::from_rgba(85, 30, 20, 200) });
+            draw_rectangle_lines(dismiss_btn.x, dismiss_btn.y, dismiss_btn.w, dismiss_btn.h, 1.0, Color::from_rgba(230, 160, 80, 200));
+            draw_text("Dismiss & Appoint (150g)", dismiss_btn.x + 8.0, dismiss_btn.y + 17.0, 11.0, WHITE);
+
+            if is_mouse_button_pressed(MouseButton::Left) && dis_hov {
+                match game.replace_minister(m_inst.role, 0) {
+                    Ok(msg) => ui.set_toast(&msg),
+                    Err(err) => ui.set_toast(&err),
+                }
+            }
+        }
+
+        card_y += card_h + 5.0;
+    }
+
+    // Candidate Statesmen Pool
+    draw_text_bold("Statesmen Candidate Pool (Opposition / Available Statesmen):", 50.0, card_y + 15.0, 13.5, Color::from_rgba(240, 215, 130, 255));
+    card_y += 20.0;
+
+    let pool_w = (screen_w - 120.0) / 3.0;
+    for (p_idx, cand) in player_fac.minister_pool.iter().take(3).enumerate() {
+        let p_rect = Rect::new(50.0 + (p_idx as f32 * (pool_w + 10.0)), card_y, pool_w, 48.0);
+        draw_rectangle(p_rect.x, p_rect.y, p_rect.w, p_rect.h, Color::from_rgba(28, 22, 18, 220));
+        draw_rectangle_lines(p_rect.x, p_rect.y, p_rect.w, p_rect.h, 1.0, Color::from_rgba(160, 130, 70, 180));
+        draw_text_bold(&cand.name, p_rect.x + 8.0, p_rect.y + 16.0, 12.5, Color::from_rgba(240, 225, 180, 255));
+        let stars_str = "*".repeat(cand.stars as usize);
+        draw_text(&format!("Ability: [{}] | Loyalty: {}/10", stars_str, cand.loyalty), p_rect.x + 8.0, p_rect.y + 30.0, 10.5, Color::from_rgba(220, 200, 140, 255));
+        draw_text(&cand.trait_desc, p_rect.x + 8.0, p_rect.y + 42.0, 9.5, Color::from_rgba(180, 210, 160, 255));
     }
 }
 
@@ -2623,6 +2717,12 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
                 !is_at_war,
             ),
             (
+                DiploAction::ShareTechnology,
+                "Transfer Military Technology",
+                "Shares technical innovations for 600g honorarium (+30 Trust)",
+                !is_at_war,
+            ),
+            (
                 DiploAction::DeclareWar,
                 "Declare War / Mobilize",
                 "Sever all treaties and initiate open warfare (-80 Relations)",
@@ -2630,9 +2730,9 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
             ),
         ];
 
-        let mut btn_y = content_y + 175.0;
+        let mut btn_y = content_y + 172.0;
         let btn_w = right_w - 40.0;
-        let btn_h = 32.0;
+        let btn_h = 28.0;
 
         for (action, title, desc, enabled) in actions {
             let b_rect = Rect::new(right_x + 20.0, btn_y, btn_w, btn_h);
@@ -2651,8 +2751,8 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
             draw_rectangle_lines(b_rect.x, b_rect.y, b_rect.w, b_rect.h, 1.2, if enabled { Color::from_rgba(210, 175, 90, 200) } else { Color::from_rgba(90, 80, 70, 140) });
 
             let title_color = if enabled { Color::from_rgba(245, 230, 160, 255) } else { Color::from_rgba(130, 120, 105, 255) };
-            draw_text_bold(title, b_rect.x + 12.0, b_rect.y + 20.0, 13.0, title_color);
-            draw_text(desc, b_rect.x + 280.0, b_rect.y + 20.0, 11.5, Color::from_rgba(195, 185, 165, 255));
+            draw_text_bold(title, b_rect.x + 12.0, b_rect.y + 18.0, 12.5, title_color);
+            draw_text(desc, b_rect.x + 280.0, b_rect.y + 18.0, 11.0, Color::from_rgba(195, 185, 165, 255));
 
             if enabled && is_mouse_button_pressed(MouseButton::Left) && hov {
                 match game.conduct_diplomacy(target_id, action) {
@@ -2661,7 +2761,7 @@ pub fn render_diplomacy_view(game: &mut GameState, ui: &mut UiState) {
                 }
             }
 
-            btn_y += 37.0;
+            btn_y += 33.0;
         }
     }
 }

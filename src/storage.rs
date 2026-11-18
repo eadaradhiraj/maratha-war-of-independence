@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use crate::game_state::GameState;
 use crate::models::{
-    Army, BuildingType, CommodityType, FactionId, Minister, RecruitOrder, Season, TaxLevel, UnitInstance,
+    Army, BuildingType, CampaignVictoryCondition, CommodityType, FactionId, GovernmentType, Minister, RecruitOrder, Season, TaxLevel, UnitInstance,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,6 +61,10 @@ pub struct FactionSaveData {
     pub overlord: Option<FactionId>,
     #[serde(default)]
     pub military_access_with: Vec<FactionId>,
+    #[serde(default)]
+    pub government: GovernmentType,
+    #[serde(default)]
+    pub minister_pool: Vec<Minister>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -86,6 +90,10 @@ pub struct CampaignSaveData {
     pub provinces: Vec<ProvinceSaveData>,
     pub armies: Vec<Army>,
     pub victory_claimed: bool,
+    #[serde(default)]
+    pub victory_mode: CampaignVictoryCondition,
+    #[serde(default)]
+    pub capital_unrest_turns: u32,
 }
 
 // -------------------------------------------------------------
@@ -274,6 +282,8 @@ pub fn save_campaign_state(
             vassals: f.vassals.clone(),
             overlord: f.overlord,
             military_access_with: f.military_access_with.clone(),
+            government: f.government,
+            minister_pool: f.minister_pool.clone(),
         })
         .collect();
 
@@ -311,6 +321,8 @@ pub fn save_campaign_state(
         provinces,
         armies: game.armies.clone(),
         victory_claimed: game.victory_claimed,
+        victory_mode: game.victory_mode,
+        capital_unrest_turns: game.capital_unrest_turns,
     };
 
     let json_str = serde_json::to_string(&save_data)

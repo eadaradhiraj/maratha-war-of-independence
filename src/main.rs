@@ -79,7 +79,7 @@ async fn main() {
                     render_zoom_controls(&mut ui, &game);
                 }
                 ActiveTab::Government => {
-                    ui::render_government_view(&mut game);
+                    ui::render_government_view(&mut game, &mut ui);
                 }
                 ActiveTab::Technology => {
                     ui::render_technology_view(&mut game);

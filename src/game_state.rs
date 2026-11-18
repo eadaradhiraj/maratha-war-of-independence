@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use macroquad::rand;
 use crate::geo_data::create_default_provinces;
 use crate::models::*;
 
@@ -33,6 +34,8 @@ pub struct GameState {
     pub available_techs: Vec<TechNode>,
     pub victory_claimed: bool,
     pub selected_diplo_faction: Option<FactionId>,
+    pub capital_unrest_turns: u32,
+    pub victory_mode: CampaignVictoryCondition,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +56,108 @@ pub struct FactionData {
     pub vassals: Vec<FactionId>,
     pub overlord: Option<FactionId>,
     pub military_access_with: Vec<FactionId>,
+    pub government: GovernmentType,
+    pub minister_pool: Vec<Minister>,
+}
+
+pub fn generate_initial_minister_pool(f_id: FactionId) -> Vec<Minister> {
+    match f_id {
+        FactionId::Maratha => vec![
+            Minister {
+                role: MinisterRole::Treasury,
+                name: "Ramchandra Pant Amatya".into(),
+                stars: 5,
+                loyalty: 9,
+                trait_desc: "Fiscal Visionary: +15% Tax Efficiency & Mercantilism".into(),
+            },
+            Minister {
+                role: MinisterRole::War,
+                name: "Chimaji Appa".into(),
+                stars: 4,
+                loyalty: 10,
+                trait_desc: "Siege Specialist: -15% Upkeep & +10% Cavalry Power".into(),
+            },
+            Minister {
+                role: MinisterRole::Justice,
+                name: "Balaji Vishwanath".into(),
+                stars: 4,
+                loyalty: 8,
+                trait_desc: "Master Statesman: +2 Public Order & Diplomatic Drift".into(),
+            },
+        ],
+        FactionId::Mughal => vec![
+            Minister {
+                role: MinisterRole::War,
+                name: "Zulfiqar Khan Nusrat Jung".into(),
+                stars: 4,
+                loyalty: 8,
+                trait_desc: "Grand Deccan Marshal: -12% Imperial Upkeep".into(),
+            },
+            Minister {
+                role: MinisterRole::Treasury,
+                name: "Inayatullah Khan Kashmiri".into(),
+                stars: 4,
+                loyalty: 9,
+                trait_desc: "Exchequer Reformer: +12% Imperial Revenue".into(),
+            },
+            Minister {
+                role: MinisterRole::Justice,
+                name: "Qazi Abdul Wahhab".into(),
+                stars: 3,
+                loyalty: 8,
+                trait_desc: "Orthodox Jurist: +2 Religious Repression".into(),
+            },
+        ],
+        _ => vec![
+            Minister {
+                role: MinisterRole::Treasury,
+                name: "Diwan Venkanna".into(),
+                stars: 3,
+                loyalty: 7,
+                trait_desc: "Competent Tax Collector: +8% Revenue".into(),
+            },
+            Minister {
+                role: MinisterRole::War,
+                name: "Sardar Bakht Singh".into(),
+                stars: 3,
+                loyalty: 8,
+                trait_desc: "Frontier Commander: -8% Upkeep".into(),
+            },
+            Minister {
+                role: MinisterRole::Justice,
+                name: "Mirza Fazlullah".into(),
+                stars: 3,
+                loyalty: 7,
+                trait_desc: "Magistrate: +1 Public Order".into(),
+            },
+        ],
+    }
+}
+
+pub fn generate_random_statesman(role: MinisterRole) -> Minister {
+    let names = [
+        "Trimbakrao Dabhade", "Malhar Rao Holkar", "Ranoji Scindia",
+        "Santaji Ghorpade", "Dhanaji Jadhav", "Moropant Pingle",
+        "Sadashivrao Bhau", "Nana Fadnavis", "Mahadji Shinde",
+    ];
+    let traits = [
+        "Fiscal Genius: +12% Provincial Tax Collection",
+        "Iron Marshal: -12% Military Upkeep Costs",
+        "Pious Scholar: +2 National Public Order & Stability",
+        "Reformer: +15% Enlightenment Research Speed",
+        "Disciplinarian: +2 Garrison Repression",
+    ];
+    let name_idx = (rand::rand() as usize) % names.len();
+    let trait_idx = (rand::rand() as usize) % traits.len();
+    let stars = ((rand::rand() % 4) + 2) as u8;
+    let loyalty = ((rand::rand() % 4) + 7) as u8;
+    Minister {
+        role,
+        name: names[name_idx].into(),
+        stars,
+        loyalty,
+        trait_desc: traits[trait_idx].into(),
+    }
 }
 
 impl GameState {
@@ -123,6 +228,8 @@ impl GameState {
                 vassals: vec![],
                 overlord: None,
                 military_access_with: vec![],
+                government: GovernmentType::AbsoluteMonarchy,
+                minister_pool: generate_initial_minister_pool(FactionId::Maratha),
             },
         );
 
@@ -176,6 +283,8 @@ impl GameState {
                 vassals: vec![],
                 overlord: None,
                 military_access_with: vec![],
+                government: GovernmentType::AbsoluteMonarchy,
+                minister_pool: generate_initial_minister_pool(FactionId::Mughal),
             },
         );
 
@@ -205,6 +314,8 @@ impl GameState {
                 vassals: vec![],
                 overlord: None,
                 military_access_with: vec![],
+                government: GovernmentType::ConstitutionalMonarchy,
+                minister_pool: generate_initial_minister_pool(FactionId::Mysore),
             },
         );
 
@@ -234,6 +345,8 @@ impl GameState {
                 vassals: vec![],
                 overlord: None,
                 military_access_with: vec![],
+                government: GovernmentType::ConstitutionalMonarchy,
+                minister_pool: generate_initial_minister_pool(FactionId::Portugal),
             },
         );
 
@@ -263,6 +376,8 @@ impl GameState {
                 vassals: vec![],
                 overlord: None,
                 military_access_with: vec![],
+                government: GovernmentType::Republic,
+                minister_pool: generate_initial_minister_pool(FactionId::Independent),
             },
         );
 
@@ -286,6 +401,8 @@ impl GameState {
                 vassals: vec![],
                 overlord: None,
                 military_access_with: vec![],
+                government: GovernmentType::Republic,
+                minister_pool: vec![],
             },
         );
 
@@ -309,6 +426,8 @@ impl GameState {
                 vassals: vec![],
                 overlord: None,
                 military_access_with: vec![],
+                government: GovernmentType::Republic,
+                minister_pool: generate_initial_minister_pool(FactionId::Sikh),
             },
         );
 
@@ -332,6 +451,8 @@ impl GameState {
                 vassals: vec![],
                 overlord: None,
                 military_access_with: vec![],
+                government: GovernmentType::AbsoluteMonarchy,
+                minister_pool: generate_initial_minister_pool(FactionId::Hyderabad),
             },
         );
 
@@ -355,6 +476,8 @@ impl GameState {
                 vassals: vec![],
                 overlord: None,
                 military_access_with: vec![],
+                government: GovernmentType::AbsoluteMonarchy,
+                minister_pool: generate_initial_minister_pool(FactionId::Bengal),
             },
         );
 
@@ -510,6 +633,8 @@ impl GameState {
             available_techs,
             victory_claimed: false,
             selected_diplo_faction: Some(FactionId::Mughal),
+            capital_unrest_turns: 0,
+            victory_mode: CampaignVictoryCondition::LongCampaign,
         }
     }
 
@@ -519,6 +644,8 @@ impl GameState {
         self.season = data.season;
         self.player_faction = data.player_faction;
         self.victory_claimed = data.victory_claimed;
+        self.victory_mode = data.victory_mode;
+        self.capital_unrest_turns = data.capital_unrest_turns;
         self.armies = data.armies;
 
         // Restore factions
@@ -537,6 +664,8 @@ impl GameState {
                 fac.vassals = fac_save.vassals;
                 fac.overlord = fac_save.overlord;
                 fac.military_access_with = fac_save.military_access_with;
+                fac.government = fac_save.government;
+                fac.minister_pool = fac_save.minister_pool;
             }
         }
 
@@ -668,7 +797,18 @@ impl GameState {
             let base_trade = fac.trade_partners.len() as i32 * 250;
             let penalty = (blockaded_ports as i32 * 125).min(base_trade);
             trade_income += base_trade - penalty;
+
+            if fac.government == GovernmentType::ConstitutionalMonarchy {
+                trade_income = (trade_income as f32 * 1.10) as i32;
+            }
         }
+
+        // Treasury Minister Efficiency Bonus (+3% per ability star)
+        let treasury_stars = self.factions.get(&faction_id)
+            .and_then(|f| f.ministers.iter().find(|m| m.role == MinisterRole::Treasury).map(|m| m.stars))
+            .unwrap_or(3);
+        let tax_bonus = (tax_income as f32 * (treasury_stars as f32 * 0.03)) as i32;
+        tax_income += tax_bonus;
 
         // Army upkeep
         let mut upkeep = 0;
@@ -682,6 +822,13 @@ impl GameState {
                 upkeep += (unit.unit_type.stats().upkeep as f32 * 0.75) as i32;
             }
         }
+
+        // War Minister Upkeep Reduction (-3% per ability star)
+        let war_stars = self.factions.get(&faction_id)
+            .and_then(|f| f.ministers.iter().find(|m| m.role == MinisterRole::War).map(|m| m.stars))
+            .unwrap_or(3);
+        let upkeep_discount = (upkeep as f32 * (war_stars as f32 * 0.03)) as i32;
+        upkeep = upkeep.saturating_sub(upkeep_discount);
 
         let total_income = tax_income + trade_income;
         let net_profit = total_income - upkeep;
@@ -1252,6 +1399,30 @@ impl GameState {
                 }
                 Ok(format!("Transferred sovereignty of {} to {}. Bilateral diplomatic trust surged (+45)!", prov_name, target_fac.name))
             }
+            DiploAction::ShareTechnology => {
+                if p_fac.wars.contains(&target) {
+                    return Err("Cannot share military technology while at war!".into());
+                }
+                let shareable: Vec<String> = p_fac.researched_techs.iter()
+                    .filter(|t| !target_fac.researched_techs.contains(t))
+                    .cloned()
+                    .collect();
+                if shareable.is_empty() {
+                    return Err(format!("The court of {} already possesses all innovations known to your scholars.", target_fac.name));
+                }
+                let tech_name = shareable[0].clone();
+                if let Some(f) = self.factions.get_mut(&target) {
+                    f.researched_techs.push(tech_name.clone());
+                    let rel = f.relations.entry(self.player_faction).or_insert(0);
+                    *rel = (*rel + 30).min(100);
+                }
+                if let Some(f) = self.factions.get_mut(&self.player_faction) {
+                    f.treasury += 600;
+                    let rel = f.relations.entry(target).or_insert(0);
+                    *rel = (*rel + 30).min(100);
+                }
+                Ok(format!("Shared technical breakthrough [{}] with {}! Received 600g royal honorarium and +30 Diplomatic Trust.", tech_name, target_fac.name))
+            }
         }
     }
 
@@ -1528,6 +1699,47 @@ impl GameState {
                     }
                 } else {
                     Err(format!("No hostile field general stationed in {}.", prov_name))
+                }
+            }
+            CovertAction::StealTechnology => {
+                let target_owner = target_prov.owner;
+                let target_fac = match self.factions.get(&target_owner) {
+                    Some(f) => f,
+                    None => return Err("Invalid foreign sovereign court.".into()),
+                };
+                let p_fac = self.factions.get(&self.player_faction).unwrap();
+                let stealable: Vec<String> = target_fac.researched_techs.iter()
+                    .filter(|t| !p_fac.researched_techs.contains(t))
+                    .cloned()
+                    .collect();
+                if stealable.is_empty() {
+                    return Err(format!("Foreign scholars in {} possess no technical innovations unknown to our academies.", prov_name));
+                }
+                let roll = (self.turn * 23 + target_prov_idx as u32 * 41) % 100;
+                if roll < 55 {
+                    let tech_id = stealable[0].clone();
+                    if let Some(f) = self.factions.get_mut(&self.player_faction) {
+                        f.researched_techs.push(tech_id.clone());
+                    }
+                    let msg = format!("Grand Espionage Success! Operatives in {} stole technical schematics for [{}].", prov_name, tech_id);
+                    self.notifications.push(Notification {
+                        turn: self.turn,
+                        year: self.year,
+                        title: "Espionage: Technology Blueprints Stolen!".into(),
+                        message: msg.clone(),
+                        is_urgent: true,
+                    });
+                    Ok(msg)
+                } else {
+                    let msg = format!("Theft compromised in {}! Operatives were seized by palace guards while copying military treaties.", prov_name);
+                    self.notifications.push(Notification {
+                        turn: self.turn,
+                        year: self.year,
+                        title: "Espionage: Infiltration Compromised".into(),
+                        message: msg.clone(),
+                        is_urgent: false,
+                    });
+                    Ok(msg)
                 }
             }
         }
@@ -1978,11 +2190,12 @@ impl GameState {
             army.has_moved = false;
         }
 
-        // 4. Research progress (frozen if bankrupt)
+        // 4. Research progress (frozen if bankrupt; boosted under Republic)
         if let Some(fac) = self.factions.get_mut(&self.player_faction) {
             if !fac.is_bankrupt {
+                let speed_step = if fac.government == GovernmentType::Republic { 2 } else { 1 };
                 if let Some((tech_id, turns)) = &mut fac.current_research {
-                    if *turns <= 1 {
+                    if *turns <= speed_step {
                         let completed = tech_id.clone();
                         fac.researched_techs.push(completed.clone());
                         fac.current_research = None;
@@ -1994,7 +2207,7 @@ impl GameState {
                             is_urgent: true,
                         });
                     } else {
-                        *turns -= 1;
+                        *turns -= speed_step;
                     }
                 }
             }
@@ -2014,24 +2227,48 @@ impl GameState {
             fac.prestige = (mil_prestige, eco_prestige, enl_prestige);
         }
 
-        // 6. Check Victory Condition: Maratha controls Hindustan (Delhi) and 10+ provinces
-        let maratha_count = self
-            .provinces
-            .iter()
-            .filter(|p| p.owner == FactionId::Maratha)
-            .count();
-        let holds_delhi = self.provinces[9].owner == FactionId::Maratha;
-
-        if holds_delhi && maratha_count >= 10 && !self.victory_claimed {
-            self.victory_claimed = true;
-            self.notifications.push(Notification {
-                turn: self.turn,
-                year: self.year,
-                title: "ULTIMATE VICTORY: Hindavi Swarajya Established!".into(),
-                message: "The saffron Bhagwa Dhwaj flies high over the Red Fort in Delhi! Maharani Tarabai's armies have united the Indian Subcontinent into an enduring Maratha Empire!".into(),
-                is_urgent: true,
-            });
+        // 5c. Revolution in Capital Province Check
+        let cap_idx = match self.player_faction {
+            FactionId::Maratha => 4,
+            FactionId::Mughal => 9,
+            FactionId::Mysore => 13,
+            FactionId::Portugal => 7,
+            FactionId::Independent => 0,
+            FactionId::Rebels => 0,
+            FactionId::Sikh => 15,
+            FactionId::Hyderabad => 10,
+            FactionId::Bengal => 2,
+        };
+        if self.provinces[cap_idx].owner == self.player_faction {
+            if self.provinces[cap_idx].public_order <= -4 {
+                self.capital_unrest_turns += 1;
+                if self.capital_unrest_turns >= 2 {
+                    self.capital_unrest_turns = 0;
+                    let current_gov = self.factions.get(&self.player_faction).map(|f| f.government).unwrap_or_default();
+                    let next_gov = match current_gov {
+                        GovernmentType::AbsoluteMonarchy => GovernmentType::Republic,
+                        GovernmentType::ConstitutionalMonarchy => GovernmentType::Republic,
+                        GovernmentType::Republic => GovernmentType::AbsoluteMonarchy,
+                    };
+                    if let Some(f) = self.factions.get_mut(&self.player_faction) {
+                        f.government = next_gov;
+                    }
+                    self.provinces[cap_idx].public_order = 4;
+                    self.notifications.push(Notification {
+                        turn: self.turn,
+                        year: self.year,
+                        title: "POPULAR REVOLUTION IN THE CAPITAL!".into(),
+                        message: format!("Unbearable public discord sparked an uprising in the capital seat! The realm has transitioned to a {}. {}", next_gov.name(), next_gov.bonus_desc()),
+                        is_urgent: true,
+                    });
+                }
+            } else {
+                self.capital_unrest_turns = 0;
+            }
         }
+
+        // 6. Check Victory Condition
+        self.check_victory_conditions();
 
         // 7. AutoSave Campaign State to Local Storage!
         let _ = crate::storage::auto_save_campaign(self);
@@ -2121,5 +2358,127 @@ impl GameState {
         } else {
             Err("No under-strength regiments of identical type found to consolidate.".into())
         }
+    }
+
+    pub fn replace_minister(&mut self, role: MinisterRole, pool_idx: usize) -> Result<String, String> {
+        let p_fac = self.factions.get_mut(&self.player_faction).ok_or("Player faction not found")?;
+        if p_fac.treasury < 150 {
+            return Err("Insufficient funds! Political appointment requires 150g court fee.".into());
+        }
+        if pool_idx >= p_fac.minister_pool.len() {
+            return Err("Invalid candidate index.".into());
+        }
+        p_fac.treasury -= 150;
+        let mut new_minister = p_fac.minister_pool.remove(pool_idx);
+        new_minister.role = role;
+
+        let res_msg = if let Some(pos) = p_fac.ministers.iter().position(|m| m.role == role) {
+            let old_m = std::mem::replace(&mut p_fac.ministers[pos], new_minister.clone());
+            let candidate = generate_random_statesman(role);
+            p_fac.minister_pool.push(candidate);
+            format!("Dismissed {}. Appointed {} (★{}) as {}.", old_m.name, new_minister.name, new_minister.stars, role.title())
+        } else {
+            p_fac.ministers.push(new_minister.clone());
+            let candidate = generate_random_statesman(role);
+            p_fac.minister_pool.push(candidate);
+            format!("Appointed {} (★{}) as {}.", new_minister.name, new_minister.stars, role.title())
+        };
+        Ok(res_msg)
+    }
+
+    pub fn reform_government(&mut self, new_gov: GovernmentType) -> Result<String, String> {
+        let p_fac = self.factions.get_mut(&self.player_faction).ok_or("Player faction not found")?;
+        if p_fac.government == new_gov {
+            return Err("Government structure is already in effect.".into());
+        }
+        if p_fac.treasury < 600 {
+            return Err("Constitutional reform requires 600g in administrative reorganization fees.".into());
+        }
+        p_fac.treasury -= 600;
+        p_fac.government = new_gov;
+        self.capital_unrest_turns = 0;
+        Ok(format!("Constitutional Reform Enacted! Government restructured to {}. {}", new_gov.name(), new_gov.bonus_desc()))
+    }
+
+    pub fn sapper_assault(&mut self, prov_idx: usize) -> Result<String, String> {
+        if prov_idx >= self.provinces.len() {
+            return Err("Invalid province index.".into());
+        }
+        let p = &self.provinces[prov_idx];
+        if !p.is_under_siege {
+            return Err("Province is not under siege.".into());
+        }
+        let army_idx = p.besieger_army_idx.ok_or("No besieger registered")?;
+        let army = self.armies.get(army_idx).ok_or("Besieging army not found")?;
+        let has_art = army.units.iter().any(|u| u.unit_type.stats().is_artillery);
+        if !has_art {
+            return Err("Sapper wall breach requires Artillery (Topchi Cannons or Howitzers) in the besieging army!".into());
+        }
+        let p_name = p.name.clone();
+        let victor = army.owner;
+        let p_mut = &mut self.provinces[prov_idx];
+        p_mut.owner = victor;
+        p_mut.is_under_siege = false;
+        p_mut.siege_turns_left = 0;
+        p_mut.besieger_army_idx = None;
+        p_mut.resistance_to_occupation = 10;
+        p_mut.garrison.clear();
+        self.notifications.push(Notification {
+            turn: self.turn,
+            year: self.year,
+            title: "Fortress Carried by Sapper Storm!".into(),
+            message: format!("Heavy artillery shattered the stone bastions of {}. Assault columns stormed the breaches and captured the seat!", p_name),
+            is_urgent: true,
+        });
+        Ok(format!("Artillery Sapper Breach! Stone bastions of {} collapsed. Fortress carried by storm!", p_name))
+    }
+
+    pub fn campaign_progress(&self) -> (usize, bool, bool, usize) {
+        let owned = self.provinces.iter().filter(|p| p.owner == self.player_faction).count();
+        let holds_delhi = self.provinces.get(9).map(|p| p.owner == self.player_faction).unwrap_or(false);
+        let holds_satara = self.provinces.get(4).map(|p| p.owner == self.player_faction).unwrap_or(false);
+
+        let my_p = self.factions.get(&self.player_faction)
+            .map(|f| f.prestige.0 + f.prestige.1 + f.prestige.2)
+            .unwrap_or(0);
+        let mut rank = 1;
+        for (f_id, f) in &self.factions {
+            if *f_id != self.player_faction && (f.prestige.0 + f.prestige.1 + f.prestige.2) > my_p {
+                rank += 1;
+            }
+        }
+        (owned, holds_delhi, holds_satara, rank)
+    }
+
+    pub fn check_victory_conditions(&mut self) -> Option<&'static str> {
+        let (owned, holds_delhi, holds_satara, rank) = self.campaign_progress();
+
+        if !self.victory_claimed {
+            // Long Campaign Victory (14 provinces including Delhi & Satara)
+            if owned >= 14 && holds_delhi && holds_satara {
+                self.victory_claimed = true;
+                self.notifications.push(Notification {
+                    turn: self.turn,
+                    year: self.year,
+                    title: "IMPERIAL TRIUMPH: GRAND CAMPAIGN VICTORY!".into(),
+                    message: format!("Supreme Hegemony Achieved! The {} controls {} Subahs including Delhi and Satara. The Indian Subcontinent unites under your sovereign rule!", self.player_faction.name(), owned),
+                    is_urgent: true,
+                });
+                return Some("Long Campaign Victory Achieved");
+            }
+            // Prestige Victory (leading prestige by 1750)
+            if self.year >= 1750 && rank == 1 {
+                self.victory_claimed = true;
+                self.notifications.push(Notification {
+                    turn: self.turn,
+                    year: self.year,
+                    title: "PRESTIGE VICTORY: FOREMOST EMPIRE OF ASIA!".into(),
+                    message: format!("By 1750, the {} stands as the undisputed foremost power of the Indian Subcontinent in arms, commerce, and enlightenment!", self.player_faction.name()),
+                    is_urgent: true,
+                });
+                return Some("Prestige Victory Achieved");
+            }
+        }
+        None
     }
 }
