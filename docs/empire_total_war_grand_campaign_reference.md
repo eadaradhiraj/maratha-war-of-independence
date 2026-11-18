@@ -18,6 +18,9 @@ An exhaustive, authoritative reference of every mechanic, system, and formula go
 11. [Diplomacy, Treaties & Geopolitics](#11-diplomacy-treaties--geopolitics)
 12. [Emergent Nations, Rebellions & Pirates](#12-emergent-nations-rebellions--pirates)
 13. [Cabinet Missions, Prestige & Victory Conditions](#13-cabinet-missions-prestige--victory-conditions)
+14. [The Grand Ledger, Event Queue & Regimental Veteran System](#14-the-grand-ledger-event-queue--regimental-veteran-system)
+15. [Advanced Diplomatic Levers & Faction Life-Cycle](#15-advanced-diplomatic-levers--faction-life-cycle)
+16. [Campaign Game Modes, Seasonal Weather & Strategic Map Ambience](#16-campaign-game-modes-seasonal-weather--strategic-map-ambience)
 
 ---
 
@@ -406,3 +409,80 @@ National progress is graphed every single turn across four core pillars:
 * **Long Campaign**: Control 40–50 designated world provinces including major foreign capitals by **1799**.
 * **World Domination**: Conquer and maintain direct rule over 50+ regions across all three theaters.
 * **Prestige Victory**: If no empire achieves military hegemony before the final seasonal turn in **1799**, victory is awarded to the faction with the highest cumulative **Prestige Points**.
+
+---
+
+## 14. The Grand Ledger, Event Queue & Regimental Veteran System
+
+### 14.1 The Grand Ledger (Overview Management Tables)
+A multi-tab master database enabling empire management at scale without visiting each settlement manually:
+* **Provinces Tab**: Sortable matrix displaying all regions by Population, Net Wealth, Income, Tax Status, Public Order (Upper & Lower), and Governor's Residence.
+* **Armed Forces Tab (Armies & Navies)**: Inventory of every field army and naval armada, reporting commander name, unit counts, upkeep cost, and replenishment status.
+* **Lists Tab (Agents)**: Full registry of active Gentlemen, Rakes, and Missionaries and their current assignments.
+* **Known Factions Ledger**: Diplomatic standing, trade status, government archetype, and state religion across all discovered world powers.
+
+### 14.2 Turn Event Notifications & Camera Anchors
+* **The Turn Event Queue**: Chronological message ribbons displayed at turn start:
+  * Critical Events (Immediate attention required: Capital Rioting, Bankruptcy, War Declarations, Monarch Death, City Surrendered).
+  * Informational Events (Buildings constructed, technologies researched, trade routes formed, agents recruited).
+  * Double-clicking any event immediately flies the camera across the world directly to the targeted province or character.
+
+### 14.3 Regimental Experience (Chevrons) & Veteran Dilution
+* **Experience Tiers**: Battalions gain chevrons through surviving battles and inflicting casualties:
+  * Bronze (1–3), Silver (4–6), Gold (7–9).
+  * Each chevron increases accuracy, reload rate, melee attack, melee defense, and morale resistance.
+* **The Veteran Dilution Formula**:
+  * When a depleted veteran battalion replenishes losses in friendly territory, newly drafted green recruits dilute the veteran core:
+    $$\text{New Experience} = \frac{(\text{Survivors} \times \text{Old Exp}) + (\text{New Recruits} \times 0)}{\text{Total Regimental Strength}}$$
+  * Heavily damaged units lose chevrons upon receiving large batches of reinforcements.
+* **Regimental Renaming & Historical Lineage**:
+  * Players can click on any individual battalion to permanently rename it (e.g., *"1st Satara Royal Grenadiers"*, *"Coldstream Guards"*).
+  * The unit card tracks its founding date, battles survived, and lifetime enemy casualty tallies.
+
+---
+
+## 15. Advanced Diplomatic Levers & Faction Life-Cycle
+
+### 15.1 Diplomatic Ultimatum & Coercive Statecraft
+* **The "Accept or We Will Attack" Toggle**: Attaching an ultimatum to any diplomatic proposal (demanding gold, technology, or territory) with the explicit guarantee of war if rejected.
+* **Third-Party Diplomatic Demands**:
+  * *Break Alliance*: Forcing a nation to sever military ties with their allies.
+  * *Join War*: Paying or convincing a neutral power to enter an ongoing conflict against a common adversary.
+  * *Trade Embargo*: Demanding a foreign nation cancel its commercial trade treaty with an enemy state.
+
+### 15.2 Faction Destruction & Imperial Liberation
+* **Faction Extinction ("Faction Destroyed")**: When an empire loses its final province and all field armies are eliminated, its sovereignty is officially terminated with a global fanfare notification.
+* **Capital Liberation & Protectorate Resurrection**:
+  * If a player captures the conquered historical capital of an extinct faction (e.g., capturing Edinburgh for Scotland, or Athens for Greece), the player receives a choice:
+    1. *Occupy Region*: Integrate into player empire.
+    2. *Liberate Faction*: Resurrect the extinct nation as an autonomous sovereign **Protectorate** with maximum diplomatic gratitude (+100 relations), immediate trade rights, and 50% tribute payments.
+
+---
+
+## 16. Campaign Game Modes, Seasonal Weather & Strategic Map Ambience
+
+### 16.1 Seasonal Turn Cycles & Winter Weather
+* **Summer & Winter Turns**: Standard 2-turn-per-year seasonal cycle (or 4-turn variant in mods):
+  * **Winter Attrition**: Armies marching or standing in deep northern winter snowfields (Scandinavia, Russia, Canada) suffer non-combat freezing casualties unless garrisoned in towns or forts.
+  * Winter visually transforms the campaign map with falling snow and frozen rivers.
+
+### 16.2 Strategic Map Living Ambience
+The strategic 3D campaign terrain reflects living human activity:
+* **Civilian Carriages & Pack Mules**: Move visibly along upgraded paved road networks.
+* **Industrial Smoke & Machinery**: Factory smokestacks billow soot; rural windmills rotate in agrarian zones.
+* **Maritime Traffic**: Merchant ships sail visibly along active maritime trade routes.
+* **National Banners & Flags**: Wave on capital fortresses, switching dynamically to revolutionary tricolors or republican standards upon regime changes.
+
+### 16.3 Campaign Audio & The Strategic Advisor
+* **The Full-Voice Campaign Advisor**: A dedicated historical narrator who intervenes during campaign turns to alert the player to impending famine, treasury insolvency, new technological milestones, and colonial opportunities.
+* **Faction-Specific Campaign Voice Acting**: Clicking armies, generals, and fleets triggers voice responses in the faction's native historical language (Marathi/Hindustani for Marathas, Persian/Urdu for Mughals, English, French, Spanish, Russian, Ottoman Turkish).
+
+### 16.4 Campaign Game Modes
+* **The Grand Campaign**: The global sandbox encompassing all playable world empires (1700–1799).
+* **The Road to Independence (Narrative Campaign)**: A 4-act episodic story campaign:
+  * Act 1: Early colonial settlement in Jamestown, Virginia.
+  * Act 2: The French and Indian War.
+  * Act 3: The American Revolutionary War (1775–1783).
+  * Act 4: The United States as a fully playable world power on the global Grand Campaign map.
+* **Multiplayer Campaign**: Two-player turn-based Grand Campaign over LAN or Internet, playable in Head-to-Head or Co-operative alliance modes.
+
