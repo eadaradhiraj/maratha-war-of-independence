@@ -48,6 +48,8 @@ pub struct FactionData {
     pub trade_partners: Vec<FactionId>,
     pub alliances: Vec<FactionId>,
     pub relations: HashMap<FactionId, i32>,
+    pub is_bankrupt: bool,
+    pub prestige: (u32, u32, u32), // (military, economic, enlightenment)
 }
 
 impl GameState {
@@ -113,6 +115,8 @@ impl GameState {
                 trade_partners: vec![FactionId::Portugal],
                 alliances: vec![],
                 relations: maratha_rel,
+                is_bankrupt: false,
+                prestige: (210, 180, 80),
             },
         );
 
@@ -161,6 +165,8 @@ impl GameState {
                 trade_partners: vec![],
                 alliances: vec![],
                 relations: mughal_rel,
+                is_bankrupt: false,
+                prestige: (450, 600, 150),
             },
         );
 
@@ -185,6 +191,8 @@ impl GameState {
                 trade_partners: vec![FactionId::Maratha],
                 alliances: vec![],
                 relations: mysore_rel,
+                is_bankrupt: false,
+                prestige: (110, 120, 60),
             },
         );
 
@@ -209,6 +217,8 @@ impl GameState {
                 trade_partners: vec![FactionId::Maratha],
                 alliances: vec![],
                 relations: port_rel,
+                is_bankrupt: false,
+                prestige: (90, 160, 100),
             },
         );
 
@@ -233,6 +243,8 @@ impl GameState {
                 trade_partners: vec![],
                 alliances: vec![],
                 relations: ind_rel,
+                is_bankrupt: false,
+                prestige: (80, 80, 20),
             },
         );
 
@@ -251,6 +263,8 @@ impl GameState {
                 trade_partners: vec![],
                 alliances: vec![],
                 relations: HashMap::new(),
+                is_bankrupt: false,
+                prestige: (30, 20, 0),
             },
         );
 
@@ -273,6 +287,7 @@ impl GameState {
             general_name: "Senapati Dhanaji Jadhav".into(),
             general_stars: 4,
             has_moved: false,
+            stance: CampaignStance::Normal,
         });
 
         // Maratha Carnatica Army in Arcot
@@ -288,6 +303,7 @@ impl GameState {
             general_name: "Santaji Ghorpade".into(),
             general_stars: 3,
             has_moved: false,
+            stance: CampaignStance::Normal,
         });
 
         // Mughal Southern Army in Ahmadnagar
@@ -304,6 +320,7 @@ impl GameState {
             general_name: "Zulfiqar Khan".into(),
             general_stars: 3,
             has_moved: false,
+            stance: CampaignStance::Normal,
         });
 
         // Mughal Imperial Army in Hindustan (Delhi)
@@ -320,6 +337,7 @@ impl GameState {
             general_name: "Prince Azam Shah".into(),
             general_stars: 4,
             has_moved: false,
+            stance: CampaignStance::Normal,
         });
 
         let available_techs = vec![
@@ -420,6 +438,8 @@ impl GameState {
                 fac.trade_partners = fac_save.trade_partners;
                 fac.alliances = fac_save.alliances;
                 fac.relations = fac_save.relations;
+                fac.is_bankrupt = fac_save.is_bankrupt;
+                fac.prestige = fac_save.prestige;
             }
         }
 
@@ -433,6 +453,11 @@ impl GameState {
                 p.garrison = p_save.garrison;
                 p.recruitment_queue = p_save.recruitment_queue;
                 p.is_under_siege = p_save.is_under_siege;
+                p.siege_turns_left = p_save.siege_turns_left;
+                p.is_port_blockaded = p_save.is_port_blockaded;
+                p.resistance_to_occupation = p_save.resistance_to_occupation;
+                p.revealed_turns = p_save.revealed_turns;
+                p.sabotaged_turns = p_save.sabotaged_turns;
             }
         }
 
@@ -502,22 +527,29 @@ impl GameState {
         let mut trade_income = 0;
 
         for p in self.provinces.iter().filter(|p| p.owner == faction_id) {
-            let mult = p.tax_level.rate_multiplier();
-            let base_rev = (p.base_wealth as f32 * 0.4 * mult) as i32;
-            tax_income += base_rev;
+            if !p.is_under_siege {
+                let mult = p.tax_level.rate_multiplier();
+                let base_rev = (p.base_wealth as f32 * 0.4 * mult) as i32;
+                tax_income += base_rev;
 
-            for b in &p.buildings {
-                match b {
-                    BuildingType::Marketplace => tax_income += 220,
-                    BuildingType::TradingPort => trade_income += 350,
-                    _ => {}
+                if p.sabotaged_turns == 0 {
+                    for b in &p.buildings {
+                        match b {
+                            BuildingType::Marketplace => tax_income += 220,
+                            BuildingType::TradingPort if !p.is_port_blockaded => trade_income += 350,
+                            _ => {}
+                        }
+                    }
                 }
             }
         }
 
         // Trade treaties generate maritime & overland commerce (+250g per partner)
+        let blockaded_ports = self.provinces.iter().filter(|p| p.owner == faction_id && p.is_port_blockaded).count();
         if let Some(fac) = self.factions.get(&faction_id) {
-            trade_income += fac.trade_partners.len() as i32 * 250;
+            let base_trade = fac.trade_partners.len() as i32 * 250;
+            let penalty = (blockaded_ports as i32 * 125).min(base_trade);
+            trade_income += base_trade - penalty;
         }
 
         // Army upkeep
@@ -795,6 +827,7 @@ impl GameState {
             general_name: names[name_idx].to_string(),
             general_stars: 3,
             has_moved: false,
+            stance: CampaignStance::Normal,
         };
 
         self.armies.push(new_army);
@@ -1032,6 +1065,246 @@ impl GameState {
         Ok(notif_msg)
     }
 
+    pub fn has_recon_visibility(&self, prov_idx: usize) -> bool {
+        if prov_idx >= self.provinces.len() {
+            return false;
+        }
+        let p = &self.provinces[prov_idx];
+        if p.owner == self.player_faction || p.revealed_turns > 0 {
+            return true;
+        }
+        if self.armies.iter().any(|a| a.province_id == prov_idx && a.owner == self.player_faction) {
+            return true;
+        }
+        for &n in &p.neighbors {
+            if let Some(np) = self.provinces.get(n) {
+                if np.owner == self.player_faction {
+                    return true;
+                }
+            }
+            if self.armies.iter().any(|a| a.province_id == n && a.owner == self.player_faction) {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn set_army_stance(&mut self, army_idx: usize, stance: CampaignStance) -> Result<String, String> {
+        if army_idx >= self.armies.len() {
+            return Err("Invalid army index.".into());
+        }
+        let army = &mut self.armies[army_idx];
+        if army.owner != self.player_faction {
+            return Err("Cannot command foreign forces.".into());
+        }
+        if army.has_moved && stance == CampaignStance::Fortified {
+            return Err("Army must have unspent movement to establish a Fortified Camp.".into());
+        }
+        army.stance = stance;
+        if stance == CampaignStance::Fortified {
+            army.has_moved = true;
+        }
+        Ok(format!("{} assumed stance: {}.", army.general_name, stance.name()))
+    }
+
+    pub fn initiate_siege(&mut self, army_idx: usize, target_prov_idx: usize) -> Result<String, String> {
+        if army_idx >= self.armies.len() || target_prov_idx >= self.provinces.len() {
+            return Err("Invalid army or province index.".into());
+        }
+        let army = &self.armies[army_idx];
+        if army.has_moved {
+            return Err("Army has already moved this turn.".into());
+        }
+        let cur_prov = army.province_id;
+        let army_owner = army.owner;
+        if !self.provinces[cur_prov].neighbors.contains(&target_prov_idx) {
+            return Err("Target province is not adjacent.".into());
+        }
+        let target_owner = self.provinces[target_prov_idx].owner;
+        if target_owner == army_owner {
+            return Err("Cannot besiege your own provincial capital!".into());
+        }
+
+        if let Some(f) = self.factions.get_mut(&army_owner) {
+            if !f.wars.contains(&target_owner) {
+                f.wars.push(target_owner);
+            }
+        }
+        if let Some(f) = self.factions.get_mut(&target_owner) {
+            if !f.wars.contains(&army_owner) {
+                f.wars.push(army_owner);
+            }
+        }
+
+        self.armies[army_idx].province_id = target_prov_idx;
+        self.armies[army_idx].has_moved = true;
+
+        let target_name = self.provinces[target_prov_idx].name.clone();
+        let army_name = self.armies[army_idx].general_name.clone();
+
+        let target_prov = &mut self.provinces[target_prov_idx];
+        target_prov.is_under_siege = true;
+        target_prov.siege_turns_left = 3;
+        target_prov.besieger_army_idx = Some(army_idx);
+
+        let msg = format!("{} laid siege to {}! Provincial supply lines severed, 3-turn capitulation timer initiated.", army_name, target_name);
+        self.notifications.push(Notification {
+            turn: self.turn,
+            year: self.year,
+            title: "Siege Established".into(),
+            message: msg.clone(),
+            is_urgent: true,
+        });
+        Ok(msg)
+    }
+
+    pub fn lift_siege(&mut self, prov_idx: usize) -> Result<String, String> {
+        if prov_idx >= self.provinces.len() {
+            return Err("Invalid province index.".into());
+        }
+        let p = &mut self.provinces[prov_idx];
+        if !p.is_under_siege {
+            return Err("Province is not under siege.".into());
+        }
+        p.is_under_siege = false;
+        p.siege_turns_left = 0;
+        p.besieger_army_idx = None;
+        Ok(format!("Siege lines withdrawn from {}.", p.name))
+    }
+
+    pub fn toggle_port_blockade(&mut self, prov_idx: usize) -> Result<String, String> {
+        if prov_idx >= self.provinces.len() {
+            return Err("Invalid province index.".into());
+        }
+        let p = &mut self.provinces[prov_idx];
+        if p.port_name.is_none() {
+            return Err("This province has no maritime coastline or harbor.".into());
+        }
+        p.is_port_blockaded = !p.is_port_blockaded;
+        let st = if p.is_port_blockaded { "Blockaded (Maritime commerce severed)" } else { "Open (Harbor restored)" };
+        Ok(format!("Harbor of {} is now {}.", p.name, st))
+    }
+
+    pub fn dispatch_covert_mission(&mut self, target_prov_idx: usize, action: CovertAction) -> Result<String, String> {
+        if target_prov_idx >= self.provinces.len() {
+            return Err("Invalid province index.".into());
+        }
+        let cost = action.cost();
+        if let Some(fac) = self.factions.get(&self.player_faction) {
+            if fac.treasury < cost {
+                return Err(format!("Insufficient treasury (requires {}g).", cost));
+            }
+        }
+        if let Some(fac) = self.factions.get_mut(&self.player_faction) {
+            fac.treasury -= cost;
+        }
+
+        let target_prov = &mut self.provinces[target_prov_idx];
+        let prov_name = target_prov.name.clone();
+
+        match action {
+            CovertAction::Infiltrate => {
+                target_prov.revealed_turns = 4;
+                let msg = format!("Operative infiltrated {}! Fog of War lifted across this Subah for 4 seasonal turns.", prov_name);
+                self.notifications.push(Notification {
+                    turn: self.turn,
+                    year: self.year,
+                    title: "Espionage: Infiltration Successful".into(),
+                    message: msg.clone(),
+                    is_urgent: false,
+                });
+                Ok(msg)
+            }
+            CovertAction::SabotageInfrastructure => {
+                target_prov.sabotaged_turns = 3;
+                target_prov.public_order = (target_prov.public_order - 2).clamp(-10, 10);
+                let msg = format!("Operative sabotaged key fortifications & granaries in {}! Infrastructure crippled for 3 turns.", prov_name);
+                self.notifications.push(Notification {
+                    turn: self.turn,
+                    year: self.year,
+                    title: "Espionage: Sabotage Executed".into(),
+                    message: msg.clone(),
+                    is_urgent: false,
+                });
+                Ok(msg)
+            }
+            CovertAction::AssassinateGeneral => {
+                let enemy_army_opt = self.armies.iter_mut().find(|a| a.province_id == target_prov_idx && a.owner != self.player_faction);
+                if let Some(army) = enemy_army_opt {
+                    let gen_name = army.general_name.clone();
+                    let stars = army.general_stars;
+                    let roll = (self.turn * 17 + target_prov_idx as u32 * 31) % 100;
+                    let chance = (65 - (stars as u32 * 8)).max(25);
+                    if roll < chance {
+                        army.general_stars = 0;
+                        army.general_name = format!("Staff Officers (Ex-{})", gen_name);
+                        let msg = format!("Assassination successful! General {} was struck down in {}, shattering enemy command.", gen_name, prov_name);
+                        self.notifications.push(Notification {
+                            turn: self.turn,
+                            year: self.year,
+                            title: "Espionage: Commander Assassinated".into(),
+                            message: msg.clone(),
+                            is_urgent: true,
+                        });
+                        Ok(msg)
+                    } else {
+                        let msg = format!("Assassination attempt in {} failed! The operative was captured and executed.", prov_name);
+                        self.notifications.push(Notification {
+                            turn: self.turn,
+                            year: self.year,
+                            title: "Espionage: Operative Compromised".into(),
+                            message: msg.clone(),
+                            is_urgent: false,
+                        });
+                        Ok(msg)
+                    }
+                } else {
+                    Err(format!("No hostile field general stationed in {}.", prov_name))
+                }
+            }
+        }
+    }
+
+    pub fn occupy_province(&mut self, prov_idx: usize, choice: OccupationChoice) {
+        if prov_idx >= self.provinces.len() {
+            return;
+        }
+        let p = &mut self.provinces[prov_idx];
+        p.owner = self.player_faction;
+        p.is_under_siege = false;
+        p.siege_turns_left = 0;
+        p.besieger_army_idx = None;
+
+        match choice {
+            OccupationChoice::Peaceful => {
+                p.resistance_to_occupation = 8;
+                self.notifications.push(Notification {
+                    turn: self.turn,
+                    year: self.year,
+                    title: "Peaceful Annexation".into(),
+                    message: format!("{} has been peacefully incorporated into the realm. Resistance to occupation (-8) will decay over time.", p.name),
+                    is_urgent: false,
+                });
+            }
+            OccupationChoice::SackAndPillage => {
+                let looted = 750;
+                if let Some(fac) = self.factions.get_mut(&self.player_faction) {
+                    fac.treasury += looted;
+                }
+                p.base_wealth = p.base_wealth.saturating_sub(60).max(100);
+                p.resistance_to_occupation = 14;
+                p.public_order = -8;
+                self.notifications.push(Notification {
+                    turn: self.turn,
+                    year: self.year,
+                    title: "Subah Sacked & Pillaged!".into(),
+                    message: format!("{} was looted for {}g in wartime plunder! Devastated infrastructure and severe unrest (-14) in the aftermath.", p.name, looted),
+                    is_urgent: true,
+                });
+            }
+        }
+    }
+
     pub fn end_turn(&mut self) {
         self.turn += 1;
         if self.season == Season::Summer {
@@ -1051,6 +1324,36 @@ impl GameState {
             let (_, _, net_profit) = self.calculate_faction_economy(faction_id);
             if let Some(fac) = self.factions.get_mut(&faction_id) {
                 fac.treasury += net_profit;
+            }
+        }
+
+        // 1b. Check National Bankruptcy, Mutiny & Desertion
+        for faction_id in [
+            FactionId::Maratha,
+            FactionId::Mughal,
+            FactionId::Mysore,
+            FactionId::Portugal,
+        ] {
+            let in_debt = self.factions.get(&faction_id).map(|f| f.treasury < 0).unwrap_or(false);
+            if let Some(fac) = self.factions.get_mut(&faction_id) {
+                fac.is_bankrupt = in_debt;
+            }
+            if in_debt {
+                for army in self.armies.iter_mut().filter(|a| a.owner == faction_id) {
+                    for u in army.units.iter_mut() {
+                        let deserted = (u.soldiers as f32 * 0.15).ceil() as u32;
+                        u.soldiers = u.soldiers.saturating_sub(deserted).max(1);
+                    }
+                }
+                if faction_id == self.player_faction {
+                    self.notifications.push(Notification {
+                        turn: self.turn,
+                        year: self.year,
+                        title: "National Bankruptcy Crisis!".into(),
+                        message: "Treasury deficit has triggered regimental desertions (-15% troop strength) and administrative paralysis!".into(),
+                        is_urgent: true,
+                    });
+                }
             }
         }
 
@@ -1140,7 +1443,7 @@ impl GameState {
                 0
             };
 
-            let net_order_delta = tax_order + garrison_repression + building_order + religious_friction;
+            let net_order_delta = tax_order + garrison_repression + building_order + religious_friction - prov.resistance_to_occupation - (if prov.is_port_blockaded { 2 } else { 0 }) - (if self.factions.get(&prov.owner).map(|f| f.is_bankrupt).unwrap_or(false) { 2 } else { 0 });
             prov.public_order = (prov.public_order + net_order_delta).clamp(-10, 10);
         }
 
@@ -1231,33 +1534,87 @@ impl GameState {
             }
         }
 
+        // 2g. Fortress Siege Starvation & Capitulation Countdown
+        let mut capitulations = Vec::new();
+        for (p_idx, prov) in self.provinces.iter_mut().enumerate() {
+            if prov.is_under_siege {
+                for u in prov.garrison.iter_mut() {
+                    let starv = (u.soldiers as f32 * 0.15).ceil() as u32;
+                    u.soldiers = u.soldiers.saturating_sub(starv).max(1);
+                }
+                prov.siege_turns_left = prov.siege_turns_left.saturating_sub(1);
+                if prov.siege_turns_left == 0 {
+                    let victor = prov.besieger_army_idx
+                        .and_then(|idx| if idx < self.armies.len() { Some(self.armies[idx].owner) } else { None })
+                        .unwrap_or(FactionId::Maratha);
+                    capitulations.push((p_idx, prov.name.clone(), victor));
+                }
+            }
+        }
+        for (p_idx, p_name, victor) in capitulations {
+            let p = &mut self.provinces[p_idx];
+            p.owner = victor;
+            p.is_under_siege = false;
+            p.siege_turns_left = 0;
+            p.besieger_army_idx = None;
+            p.resistance_to_occupation = 6;
+            p.garrison.clear();
+            self.notifications.push(Notification {
+                turn: self.turn,
+                year: self.year,
+                title: "Fortress Capitulation!".into(),
+                message: format!("Starvation forced the garrison of {} to capitulate to {} forces without further assault!", p_name, victor.name()),
+                is_urgent: true,
+            });
+        }
+
+        // 2h. Decay Resistance to Occupation, Reconnaissance & Sabotage
+        for prov in self.provinces.iter_mut() {
+            prov.revealed_turns = prov.revealed_turns.saturating_sub(1);
+            prov.sabotaged_turns = prov.sabotaged_turns.saturating_sub(1);
+            prov.resistance_to_occupation = prov.resistance_to_occupation.saturating_sub(2);
+        }
+
         // 3. Reset army movement
         for army in self.armies.iter_mut() {
             army.has_moved = false;
         }
 
-        // 4. Research progress
+        // 4. Research progress (frozen if bankrupt)
         if let Some(fac) = self.factions.get_mut(&self.player_faction) {
-            if let Some((tech_id, turns)) = &mut fac.current_research {
-                if *turns <= 1 {
-                    let completed = tech_id.clone();
-                    fac.researched_techs.push(completed.clone());
-                    fac.current_research = None;
-                    self.notifications.push(Notification {
-                        turn: self.turn,
-                        year: self.year,
-                        title: "Technological Breakthrough!".into(),
-                        message: format!("Our savants and engineers mastered '{}'!", completed),
-                        is_urgent: true,
-                    });
-                } else {
-                    *turns -= 1;
+            if !fac.is_bankrupt {
+                if let Some((tech_id, turns)) = &mut fac.current_research {
+                    if *turns <= 1 {
+                        let completed = tech_id.clone();
+                        fac.researched_techs.push(completed.clone());
+                        fac.current_research = None;
+                        self.notifications.push(Notification {
+                            turn: self.turn,
+                            year: self.year,
+                            title: "Technological Breakthrough!".into(),
+                            message: format!("Our savants and engineers mastered '{}'!", completed),
+                            is_urgent: true,
+                        });
+                    } else {
+                        *turns -= 1;
+                    }
                 }
             }
         }
 
         // 5. AI Turn Logic (Mughal & Independent aggression/reinforcement)
         crate::ai::execute_ai_turn(self);
+
+        // 5b. Update National Prestige Matrix (Military, Economic, Enlightenment)
+        for (f_id, fac) in self.factions.iter_mut() {
+            let prov_count = self.provinces.iter().filter(|p| p.owner == *f_id).count() as u32;
+            let mil_power: u32 = self.armies.iter().filter(|a| a.owner == *f_id).map(|a| a.total_soldiers() / 15).sum();
+            let mil_prestige = prov_count * 50 + mil_power;
+
+            let eco_prestige = (fac.treasury.max(0) as u32 / 40) + (fac.trade_partners.len() as u32 * 75);
+            let enl_prestige = fac.researched_techs.len() as u32 * 120;
+            fac.prestige = (mil_prestige, eco_prestige, enl_prestige);
+        }
 
         // 6. Check Victory Condition: Maratha controls Hindustan (Delhi) and 10+ provinces
         let maratha_count = self

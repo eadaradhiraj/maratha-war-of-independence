@@ -53,6 +53,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 1: Ahmadnagar
@@ -89,6 +95,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 2: Bengal
@@ -130,6 +142,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 3: Berar
@@ -165,6 +183,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 4: Bijapur (Starting Maratha Capital!)
@@ -206,6 +230,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 5: Carnatica (Starting Maratha second province!)
@@ -248,6 +278,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 6: Ceylon
@@ -280,6 +316,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         garrison: vec![UnitInstance::new(60, UnitType::ZamindariLevies)],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 7: Goa
@@ -314,6 +356,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 8: Gujarat
@@ -354,6 +402,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 9: Hindustan (Imperial Delhi / Akbarabad)
@@ -397,6 +451,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 10: Hyderabad
@@ -438,6 +498,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 11: Kashmir
@@ -470,6 +536,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         garrison: vec![UnitInstance::new(110, UnitType::ZamindariLevies)],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 12: Malwa
@@ -507,6 +579,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 13: Mysore
@@ -543,6 +621,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 14: Orissa & Circars
@@ -576,6 +660,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         garrison: vec![UnitInstance::new(140, UnitType::ZamindariLevies)],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 15: Punjab
@@ -613,6 +703,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 16: Rajpootana
@@ -648,6 +744,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         ],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     // 17: Sindh
@@ -681,6 +783,12 @@ pub fn create_default_provinces() -> Vec<Province> {
         garrison: vec![UnitInstance::new(170, UnitType::ZamindariLevies)],
         recruitment_queue: Vec::new(),
         is_under_siege: false,
+        siege_turns_left: 0,
+        besieger_army_idx: None,
+        is_port_blockaded: false,
+        resistance_to_occupation: 0,
+        revealed_turns: 0,
+        sabotaged_turns: 0,
     });
 
     provinces

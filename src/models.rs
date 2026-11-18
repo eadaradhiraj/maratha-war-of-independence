@@ -56,6 +56,55 @@ pub enum DiploAction {
     DeclareWar,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum CampaignStance {
+    #[default]
+    Normal,
+    Fortified,
+    Raiding,
+}
+
+impl CampaignStance {
+    pub fn name(&self) -> &'static str {
+        match self {
+            CampaignStance::Normal => "March / Standard",
+            CampaignStance::Fortified => "Fortified Camp (+25% Def)",
+            CampaignStance::Raiding => "Ganimi Kava (Raiding)",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CovertAction {
+    Infiltrate,
+    SabotageInfrastructure,
+    AssassinateGeneral,
+}
+
+impl CovertAction {
+    pub fn name(&self) -> &'static str {
+        match self {
+            CovertAction::Infiltrate => "Infiltrate Subah (Lift Fog 4 Turns)",
+            CovertAction::SabotageInfrastructure => "Sabotage Infrastructure (Disable 3 Turns)",
+            CovertAction::AssassinateGeneral => "Assassinate Enemy Commander",
+        }
+    }
+
+    pub fn cost(&self) -> i32 {
+        match self {
+            CovertAction::Infiltrate => 250,
+            CovertAction::SabotageInfrastructure => 400,
+            CovertAction::AssassinateGeneral => 650,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OccupationChoice {
+    Peaceful,
+    SackAndPillage,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Season {
     Summer,
@@ -428,6 +477,8 @@ pub struct Army {
     pub general_name: String,
     pub general_stars: u8,
     pub has_moved: bool,
+    #[serde(default)]
+    pub stance: CampaignStance,
 }
 
 impl Army {
@@ -437,7 +488,8 @@ impl Army {
 
     pub fn total_combat_power(&self) -> f32 {
         let raw: f32 = self.units.iter().map(|u| u.combat_power()).sum();
-        raw * (1.0 + self.general_stars as f32 * 0.08)
+        let stance_mult = if self.stance == CampaignStance::Fortified { 1.25 } else { 1.0 };
+        raw * (1.0 + self.general_stars as f32 * 0.08) * stance_mult
     }
 }
 
@@ -470,6 +522,12 @@ pub struct Province {
     pub garrison: Vec<UnitInstance>,
     pub recruitment_queue: Vec<RecruitOrder>,
     pub is_under_siege: bool,
+    pub siege_turns_left: u32,
+    pub besieger_army_idx: Option<usize>,
+    pub is_port_blockaded: bool,
+    pub resistance_to_occupation: i32,
+    pub revealed_turns: u32,
+    pub sabotaged_turns: u32,
 }
 
 #[derive(Debug, Clone)]

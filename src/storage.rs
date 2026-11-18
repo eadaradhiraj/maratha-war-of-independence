@@ -18,6 +18,16 @@ pub struct ProvinceSaveData {
     pub garrison: Vec<UnitInstance>,
     pub recruitment_queue: Vec<RecruitOrder>,
     pub is_under_siege: bool,
+    #[serde(default)]
+    pub siege_turns_left: u32,
+    #[serde(default)]
+    pub is_port_blockaded: bool,
+    #[serde(default)]
+    pub resistance_to_occupation: i32,
+    #[serde(default)]
+    pub revealed_turns: u32,
+    #[serde(default)]
+    pub sabotaged_turns: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,6 +43,10 @@ pub struct FactionSaveData {
     pub alliances: Vec<FactionId>,
     #[serde(default)]
     pub relations: std::collections::HashMap<FactionId, i32>,
+    #[serde(default)]
+    pub is_bankrupt: bool,
+    #[serde(default)]
+    pub prestige: (u32, u32, u32),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -241,6 +255,8 @@ pub fn save_campaign_state(
             trade_partners: f.trade_partners.clone(),
             alliances: f.alliances.clone(),
             relations: f.relations.clone(),
+            is_bankrupt: f.is_bankrupt,
+            prestige: f.prestige,
         })
         .collect();
 
@@ -256,6 +272,11 @@ pub fn save_campaign_state(
             garrison: p.garrison.clone(),
             recruitment_queue: p.recruitment_queue.clone(),
             is_under_siege: p.is_under_siege,
+            siege_turns_left: p.siege_turns_left,
+            is_port_blockaded: p.is_port_blockaded,
+            resistance_to_occupation: p.resistance_to_occupation,
+            revealed_turns: p.revealed_turns,
+            sabotaged_turns: p.sabotaged_turns,
         })
         .collect();
 
