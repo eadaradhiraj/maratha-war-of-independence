@@ -29,6 +29,10 @@ pub struct FactionSaveData {
     pub ministers: Vec<Minister>,
     pub wars: Vec<FactionId>,
     pub trade_partners: Vec<FactionId>,
+    #[serde(default)]
+    pub alliances: Vec<FactionId>,
+    #[serde(default)]
+    pub relations: std::collections::HashMap<FactionId, i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -235,6 +239,8 @@ pub fn save_campaign_state(
             ministers: f.ministers.clone(),
             wars: f.wars.clone(),
             trade_partners: f.trade_partners.clone(),
+            alliances: f.alliances.clone(),
+            relations: f.relations.clone(),
         })
         .collect();
 

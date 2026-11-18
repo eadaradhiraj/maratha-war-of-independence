@@ -84,7 +84,12 @@ async fn main() {
                 ActiveTab::Technology => {
                     ui::render_technology_view(&mut game);
                 }
-                ActiveTab::Diplomacy => {}
+                ActiveTab::Diplomacy => {
+                    ui::render_diplomacy_view(&mut game, &mut ui);
+                }
+                ActiveTab::Ledger => {
+                    ui::render_ledger_view(&mut game, &mut ui);
+                }
                 ActiveTab::BattleReport => {
                     ui::render_battle_report_modal(&mut game);
                 }

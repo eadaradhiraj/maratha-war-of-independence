@@ -8,6 +8,7 @@ pub enum FactionId {
     Mysore,
     Portugal,
     Independent,
+    Rebels,
 }
 
 impl FactionId {
@@ -18,6 +19,7 @@ impl FactionId {
             FactionId::Mysore => "Sultanate of Mysore",
             FactionId::Portugal => "Kingdom of Portugal",
             FactionId::Independent => "Independent Nawabs",
+            FactionId::Rebels => "Deccan Insurgents & Rebels",
         }
     }
 
@@ -33,12 +35,25 @@ impl FactionId {
             FactionId::Portugal => (Color::from_rgba(240, 240, 240, 255), Color::from_rgba(25, 60, 160, 255)),
             // Independent Slate & Silver
             FactionId::Independent => (Color::from_rgba(110, 110, 120, 255), Color::from_rgba(200, 200, 210, 255)),
+            // Rebels Black & Crimson
+            FactionId::Rebels => (Color::from_rgba(45, 15, 15, 255), Color::from_rgba(200, 50, 50, 255)),
         }
     }
 
     pub fn primary_color(&self) -> Color {
         self.flag_colors().0
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DiploAction {
+    TradeAgreement,
+    SmallGift,
+    LavishGift,
+    Alliance,
+    Ceasefire,
+    DemandTribute,
+    DeclareWar,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -297,6 +312,18 @@ impl UnitInstance {
         let ratio = self.soldiers as f32 / stats.base_soldiers.max(1) as f32;
         let base_power = (stats.melee_attack as f32 * 1.5 + stats.defense as f32 + stats.firepower as f32 * 1.8) * ratio;
         base_power * (1.0 + self.experience as f32 * 0.1)
+    }
+
+    pub fn replenish(&mut self, amount: u32) {
+        if self.soldiers >= self.max_soldiers {
+            return;
+        }
+        let healed = amount.min(self.max_soldiers - self.soldiers);
+        let old_vets = self.soldiers as f32 * self.experience as f32;
+        self.soldiers += healed;
+        if self.soldiers > 0 {
+            self.experience = (old_vets / self.soldiers as f32).round() as u8;
+        }
     }
 }
 
